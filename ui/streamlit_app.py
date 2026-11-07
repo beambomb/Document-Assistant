@@ -1,8 +1,11 @@
-"""Streamlit Interactive Web UI for Majelis Debu Bintang.
+"""Streamlit Interactive Web UI for PT Majelis Debu Bintang.
 
-Minimalist, clean, anti-slop interface inspired by Claude & Linear.
-Strictly zero clutter, concise role labels, quiet micro-interactions,
-and emojis reserved strictly for user (👤) and assistant (🤖) avatars.
+Minimalist, clean, anti-slop interface inspired by Claude:
+- Chat input firmly at the bottom of the conversational thread
+- User chat bubbles aligned to the RIGHT with avatar 👤
+- AI assistant chat bubbles aligned to the LEFT with avatar 🤖
+- Persistent chat history in session state
+- Emojis restricted strictly to user (👤) and assistant (🤖) avatars
 """
 
 import sys
@@ -13,6 +16,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+import html
 import time
 import streamlit as st
 import pandas as pd
@@ -37,7 +41,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Minimalist Custom CSS - Clean, Quiet, Anti-Slop
+# Custom Minimalist CSS - Claude-Style Conversational Canvas
 st.markdown(
     """
     <style>
@@ -45,7 +49,9 @@ st.markdown(
 
     :root {
         --bg: #1A1917;
+        --sidebar: #151413;
         --surface: #242321;
+        --surface-user: #2C2A28;
         --border: #33312E;
         --border-subtle: rgba(255, 255, 255, 0.06);
         --text: #FAF7F2;
@@ -71,12 +77,12 @@ st.markdown(
 
     /* Container width & vertical breathing room */
     .block-container {
-        padding-top: 2rem !important;
-        padding-bottom: 3rem !important;
+        padding-top: 1.5rem !important;
+        padding-bottom: 6rem !important;
         max-width: 860px !important;
     }
 
-    /* Clean Pill Tabs (Zero red lines, zero clutter) */
+    /* Clean Pill Tabs (Zero red lines) */
     div[data-baseweb="tab-highlight"], div[data-baseweb="tab-border"] {
         display: none !important;
     }
@@ -86,7 +92,7 @@ st.markdown(
         border-radius: 9999px !important;
         padding: 3px !important;
         gap: 2px !important;
-        margin-bottom: 2rem !important;
+        margin-bottom: 1.5rem !important;
         width: fit-content !important;
     }
     button[data-baseweb="tab"] {
@@ -126,17 +132,105 @@ st.markdown(
         transform: translateY(-1px) !important;
     }
 
-    /* Floating Chat Input Bar */
+    /* Conversational Thread Layout */
+    .chat-thread {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        margin-top: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    /* User Message - Aligned to the RIGHT */
+    .msg-row-user {
+        display: flex;
+        justify-content: flex-end;
+        align-items: flex-start;
+        gap: 10px;
+        margin-left: 15%;
+    }
+    .msg-bubble-user {
+        background: var(--surface-user);
+        border: 1px solid var(--border);
+        border-radius: 18px 4px 18px 18px;
+        padding: 12px 18px;
+        color: var(--text);
+        font-size: 0.94rem;
+        line-height: 1.55;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    .msg-avatar-user {
+        font-size: 1.25rem;
+        line-height: 1;
+        padding-top: 2px;
+    }
+
+    /* Assistant Message - Aligned to the LEFT */
+    .msg-row-assistant {
+        display: flex;
+        justify-content: flex-start;
+        align-items: flex-start;
+        gap: 12px;
+        margin-right: 5%;
+    }
+    .msg-avatar-assistant {
+        font-size: 1.35rem;
+        line-height: 1;
+        padding-top: 2px;
+    }
+    .msg-bubble-assistant {
+        flex: 1;
+        color: var(--text);
+        font-size: 0.95rem;
+        line-height: 1.65;
+    }
+
+    /* Citations */
+    .citation-tag {
+        display: inline-flex;
+        align-items: center;
+        background: rgba(217, 119, 87, 0.1);
+        border: 1px solid rgba(217, 119, 87, 0.25);
+        color: #E28668;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.78rem;
+        padding: 2px 8px;
+        border-radius: 5px;
+        margin-right: 6px;
+        margin-top: 6px;
+    }
+
+    /* Refusal Callout Box */
+    .abstain-box {
+        background: var(--surface);
+        border-left: 3px solid var(--terracotta);
+        padding: 12px 16px;
+        border-radius: 0 8px 8px 0;
+        font-size: 0.92rem;
+        color: var(--text);
+        margin: 6px 0;
+    }
+
+    /* Floating Chat Input at the very BOTTOM */
     div[data-testid="stChatInput"] {
         background: transparent !important;
-        padding-top: 1rem !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        padding-bottom: 1.25rem !important;
+        padding-top: 0.5rem !important;
+        z-index: 100 !important;
+        backdrop-filter: blur(8px) !important;
     }
     div[data-testid="stChatInput"] > div {
+        max-width: 860px !important;
+        margin: 0 auto !important;
         background: var(--surface) !important;
         border: 1px solid var(--border) !important;
-        border-radius: 18px !important;
+        border-radius: 20px !important;
         padding: 4px 8px !important;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
         transition: all 0.2s ease !important;
     }
     div[data-testid="stChatInput"] > div:focus-within {
@@ -155,58 +249,16 @@ st.markdown(
         height: 30px !important;
     }
 
-    /* Chat Messages */
-    div[data-testid="stChatMessage"] {
-        background: transparent !important;
-        padding: 0.75rem 0 !important;
-    }
-    div[data-testid="stChatMessage"]:has(div[data-testid="chatAvatarIcon-user"]) {
-        background: #232220 !important;
-        border: 1px solid var(--border) !important;
-        border-radius: 14px !important;
-        padding: 12px 18px !important;
-        margin-bottom: 0.75rem !important;
-    }
-    div[data-testid="stChatMessage"] p {
-        line-height: 1.65 !important;
-    }
-
-    /* Citations */
-    .citation-tag {
-        display: inline-flex;
-        align-items: center;
-        background: rgba(217, 119, 87, 0.1);
-        border: 1px solid rgba(217, 119, 87, 0.25);
-        color: #E28668;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.78rem;
-        padding: 2px 8px;
-        border-radius: 5px;
-        margin-right: 6px;
-        margin-top: 6px;
-    }
-
-    /* Refusal Callout */
-    .abstain-box {
-        background: var(--surface);
-        border-left: 3px solid var(--terracotta);
-        padding: 12px 16px;
-        border-radius: 0 8px 8px 0;
-        font-size: 0.9rem;
-        color: var(--text);
-        margin: 8px 0;
-    }
-
     /* Sidebar Styling */
     section[data-testid="stSidebar"] {
-        background-color: #151413 !important;
+        background-color: var(--sidebar) !important;
         border-right: 1px solid var(--border) !important;
     }
     section[data-testid="stSidebar"] .block-container {
         padding: 2rem 1.25rem !important;
     }
 
-    /* Minimalist Radio Selector */
+    /* Clean Radio Options */
     div[data-testid="stRadio"] > div {
         gap: 4px !important;
     }
@@ -227,7 +279,7 @@ st.markdown(
         margin: 6px 0 !important;
     }
 
-    /* Clean Action Button */
+    /* Action Buttons */
     div[data-testid="stButton"] > button {
         background: var(--terracotta) !important;
         color: white !important;
@@ -270,14 +322,17 @@ def load_rag_engine():
 
 docs, chunks, bm25, vector_idx, retriever, reranker, gate, generator, verifier = load_rag_engine()
 
-# --- SIDEBAR: Access Control (Clean & Uncluttered) ---
+# Initialize session state for persistent chat messages
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+# --- SIDEBAR: Access Control (Clean & Minimalist) ---
 with st.sidebar:
     st.markdown('<div class="serif-brand" style="font-size: 1.35rem; margin-bottom: 2px;">PT Majelis Debu Bintang</div>', unsafe_allow_html=True)
     st.markdown('<div style="font-size: 0.8rem; color: #8E8980; margin-bottom: 1.5rem;">Asisten Dokumen & Pengetahuan</div>', unsafe_allow_html=True)
 
     st.markdown('<div style="font-size: 0.78rem; font-weight: 600; color: #FAF7F2; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Peran Aktif</div>', unsafe_allow_html=True)
 
-    # Clean, concise role names without verbose parenthetical explanations
     role_options = {
         "guest": "Tamu",
         "employee": "Karyawan",
@@ -294,6 +349,10 @@ with st.sidebar:
         index=1,
         label_visibility="collapsed",
     )
+
+    if st.button("Bersihkan Obrolan", use_container_width=True):
+        st.session_state.chat_history = []
+        st.rerun()
 
     st.divider()
 
@@ -342,7 +401,7 @@ with tab_chat:
         unsafe_allow_html=True,
     )
 
-    # Sleek Horizontal Prompt Pills (No duplicate boxes, no visual clutter)
+    # Sleek Horizontal Prompt Pills
     p1, p2, p3, p4 = st.columns(4)
     quick_query = None
 
@@ -355,17 +414,93 @@ with tab_chat:
     if p4.button("Uji Abstention"):
         quick_query = "Bagaimana resep dan bumbu halus memasak rendang daging sapi Padang?"
 
-    # Chat Input Box
+    # --- RENDER PERSISTENT CHAT HISTORY (User on RIGHT, Assistant on LEFT) ---
+    if st.session_state.chat_history:
+        st.markdown('<div class="chat-thread">', unsafe_allow_html=True)
+        for msg in st.session_state.chat_history:
+            if msg["role"] == "user":
+                # User message: aligned to the RIGHT with 👤 avatar
+                clean_text = html.escape(msg["content"])
+                st.markdown(
+                    f"""
+                    <div class="msg-row-user">
+                        <div class="msg-bubble-user">
+                            <div style="font-size: 0.76rem; color: #D97757; font-weight: 600; margin-bottom: 4px;">[{msg.get('role_label', 'Pengguna')}]</div>
+                            {clean_text}
+                        </div>
+                        <div class="msg-avatar-user">👤</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            else:
+                # Assistant message: aligned to the LEFT with 🤖 avatar
+                if msg.get("abstained"):
+                    refusal_escaped = html.escape(msg.get("content", ""))
+                    st.markdown(
+                        f"""
+                        <div class="msg-row-assistant">
+                            <div class="msg-avatar-assistant">🤖</div>
+                            <div class="msg-bubble-assistant">
+                                <div class="abstain-box">{refusal_escaped}</div>
+                                <div style="font-size: 0.78rem; color: #8E8980; margin-top: 4px;">
+                                    Latensi: {msg.get('latency_ms', 0):.1f} ms &middot; Skor: {msg.get('score', 0):.3f} &middot; Status: Ditolak
+                                </div>
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    answer_text = msg.get("content", "")
+                    citations = msg.get("citations", [])
+
+                    citation_pills = ""
+                    if citations:
+                        citation_pills = '<div style="margin-top: 8px;">'
+                        for cit in citations:
+                            citation_pills += f'<span class="citation-tag">{cit["doc_id"]} &middot; {cit["section"]} (Hal. {cit["page"]})</span>'
+                        citation_pills += '</div>'
+
+                    st.markdown(
+                        f"""
+                        <div class="msg-row-assistant">
+                            <div class="msg-avatar-assistant">🤖</div>
+                            <div class="msg-bubble-assistant">
+                                <div>{answer_text}</div>
+                                {citation_pills}
+                                <div style="font-size: 0.78rem; color: #8E8980; margin-top: 6px;">
+                                    Latensi: {msg.get('latency_ms', 0):.1f} ms &middot; Keyakinan: {msg.get('score', 0):.3f}
+                                </div>
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+        st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        st.markdown(
+            """
+            <div style="padding: 2.5rem 0; text-align: center; color: #8E8980; font-size: 0.9rem;">
+                Belum ada percakapan. Ketik pertanyaan di bawah atau pilih pertanyaan uji cepat di atas.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    # --- FLOATING CHAT INPUT AT THE BOTTOM ---
     query_input = st.chat_input("Tanyakan sesuatu tentang dokumen organisasi...")
     active_query = quick_query or query_input
 
     if active_query:
+        # Append User Message immediately to session state
+        st.session_state.chat_history.append({
+            "role": "user",
+            "content": active_query,
+            "role_label": role_options[selected_role],
+        })
+
         user = UserContext(user_id="user_active", roles=[selected_role])
-
-        # Cute user avatar only
-        with st.chat_message("user", avatar="👤"):
-            st.markdown(f"**[{role_options[selected_role]}]** &mdash; {active_query}")
-
         t0 = time.perf_counter()
 
         # Step 1: Hybrid Retrieval with ACL pre-filtering
@@ -379,51 +514,33 @@ with tab_chat:
 
         latency_ms = (time.perf_counter() - t0) * 1000
 
-        # Cute assistant avatar only
-        with st.chat_message("assistant", avatar="🤖"):
-            if should_abstain:
-                st.markdown(
-                    f"""
-                    <div class="abstain-box">
-                        {refusal_reason}
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-                st.caption(f"Latensi: {latency_ms:.1f} ms &middot; Skor: {conf_score:.3f} &middot; Status: Ditolak")
-            else:
-                answer = generator.generate(active_query, reranked, [selected_role])
-                citations, precision, _ = verifier.extract_and_verify(answer, reranked)
+        if should_abstain:
+            st.session_state.chat_history.append({
+                "role": "assistant",
+                "content": refusal_reason,
+                "abstained": True,
+                "score": conf_score,
+                "latency_ms": latency_ms,
+            })
+        else:
+            answer = generator.generate(active_query, reranked, [selected_role])
+            citations, precision, _ = verifier.extract_and_verify(answer, reranked)
 
-                st.markdown(answer)
+            cit_dicts = [
+                {"doc_id": c.doc_id, "section": c.section, "page": c.page}
+                for c in citations
+            ]
 
-                if citations:
-                    citation_html = '<div style="margin-top: 8px;">'
-                    for cit in citations:
-                        citation_html += f'<span class="citation-tag">{cit.doc_id} &middot; {cit.section} (Hal. {cit.page})</span>'
-                    citation_html += '</div>'
-                    st.markdown(citation_html, unsafe_allow_html=True)
+            st.session_state.chat_history.append({
+                "role": "assistant",
+                "content": answer,
+                "abstained": False,
+                "citations": cit_dicts,
+                "score": conf_score,
+                "latency_ms": latency_ms,
+            })
 
-                st.caption(f"Latensi: {latency_ms:.1f} ms &middot; Keyakinan: {conf_score:.3f} &middot; Peran: {role_options[selected_role]}")
-
-            # Diagnostics (Quiet Expander)
-            with st.expander("Detail Retrieval & Diagnostik"):
-                st.markdown(f"**Status Gerbang:** `{'Ditolak' if should_abstain else 'Lolos'}`")
-                if reranked:
-                    diag_data = []
-                    for c in reranked:
-                        diag_data.append({
-                            "Rank": c.rank,
-                            "Doc ID": c.chunk.doc_id,
-                            "Bagian": c.chunk.section,
-                            "Akses": ", ".join(c.chunk.access_roles),
-                            "BM25": f"{c.lexical_score:.2f}",
-                            "Rerank": f"{c.rerank_score:.3f}" if c.rerank_score else "-",
-                            "Cuplikan": c.chunk.text[:90] + "...",
-                        })
-                    st.dataframe(pd.DataFrame(diag_data), use_container_width=True)
-                else:
-                    st.caption("Tidak ada dokumen yang lolos filter hak akses pengguna.")
+        st.rerun()
 
 with tab_eval:
     st.markdown('<h2 style="font-size: 1.6rem; margin-bottom: 2px;">Evaluasi & Benchmark</h2>', unsafe_allow_html=True)
