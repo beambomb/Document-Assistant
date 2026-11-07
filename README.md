@@ -166,7 +166,7 @@ The system supports three runtime generation backends:
 
 The web UI (`ui/streamlit_app.py`) provides an interactive workbench for testing:
 - **Instant Response Feedback (0s)**: User prompt appears immediately in the chat timeline while the assistant displays an active loading spinner during retrieval and generation.
-- **Role Switcher (RBAC)**: Toggle between `Tamu`, `Karyawan`, `Keuangan`, `HR & Personalia`, `Direksi`, and `Admin` to observe real-time access permission changes.
+- **Role Switcher (RBAC)**: Toggle between `Tamu`, `Karyawan`, `Keuangan`, `HR & Personalia`, `Direksi`, dan `Admin` to observe real-time access permission changes.
 - **Runtime Inference Controls**: Adjust temperature ($0.0 - 1.0$), max tokens, repeat penalty, and CPU threads dynamically from the sidebar.
 - **Latency Telemetry Breakdown**: Displays exact timing for each query:
   $$\text{Total Latency} = \text{Retrieval (BM25 + Vector + Rerank)} + \text{LLM Generation}$$
@@ -238,4 +238,4 @@ uvicorn api.app:app --reload --port 8000
 
 ## 9. License
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for details.
+Distributed under the MIT License. See `LICENSE` for details.
