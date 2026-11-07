@@ -1,0 +1,4 @@
+{"query_id": "fiqa_q_01", "query": "What are the 401k contribution limits and rules for catch-up contributions?", "relevant_doc_ids": ["fiqa_doc_101"], "category": "retirement"}
+{"query_id": "fiqa_q_02", "query": "How are long term capital gains taxed and what are the tax brackets?", "relevant_doc_ids": ["fiqa_doc_102"], "category": "taxation"}
+{"query_id": "fiqa_q_03", "query": "How many months of expenses should be held in an emergency fund?", "relevant_doc_ids": ["fiqa_doc_103"], "category": "personal_finance"}
+{"query_id": "fiqa_q_04", "query": "What are the income phase-out limits for contributing to a Roth IRA?", "relevant_doc_ids": ["fiqa_doc_104"], "category": "retirement"}
