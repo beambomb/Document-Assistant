@@ -32,7 +32,7 @@ from config.settings import settings
 
 # Page setup
 st.set_page_config(
-    page_title="Majelis Debu Bintang",
+    page_title="PT Majelis Debu Bintang",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -272,7 +272,7 @@ docs, chunks, bm25, vector_idx, retriever, reranker, gate, generator, verifier =
 
 # --- SIDEBAR: Access Control (Clean & Uncluttered) ---
 with st.sidebar:
-    st.markdown('<div class="serif-brand" style="font-size: 1.35rem; margin-bottom: 2px;">Majelis Debu Bintang</div>', unsafe_allow_html=True)
+    st.markdown('<div class="serif-brand" style="font-size: 1.35rem; margin-bottom: 2px;">PT Majelis Debu Bintang</div>', unsafe_allow_html=True)
     st.markdown('<div style="font-size: 0.8rem; color: #8E8980; margin-bottom: 1.5rem;">Asisten Dokumen & Pengetahuan</div>', unsafe_allow_html=True)
 
     st.markdown('<div style="font-size: 0.78rem; font-weight: 600; color: #FAF7F2; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Peran Aktif</div>', unsafe_allow_html=True)
@@ -333,7 +333,7 @@ with tab_chat:
     st.markdown(
         """
         <div style="margin-bottom: 1.5rem;">
-            <h1 style="font-size: 2.1rem; margin: 0 0 6px 0;">Majelis Debu Bintang</h1>
+            <h1 style="font-size: 2.1rem; margin: 0 0 6px 0;">PT Majelis Debu Bintang</h1>
             <div style="color: #8E8980; font-size: 0.95rem;">
                 Asisten dokumen resmi berbasis peran (RBAC) dengan sitasi terverifikasi.
             </div>
@@ -450,7 +450,7 @@ with tab_eval:
 
 with tab_corpus:
     st.markdown('<h2 style="font-size: 1.6rem; margin-bottom: 2px;">Dokumen Resmi</h2>', unsafe_allow_html=True)
-    st.caption("Daftar dokumen operasional terdaftar dalam sistem Majelis Debu Bintang:")
+    st.caption("Daftar dokumen operasional terdaftar dalam sistem PT Majelis Debu Bintang:")
 
     dept_groups = {}
     for d in docs:

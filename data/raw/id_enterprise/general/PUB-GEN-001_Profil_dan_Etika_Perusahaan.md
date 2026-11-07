@@ -5,8 +5,8 @@
 **Klasifikasi Akses**: PUBLIC  
 **Divisi**: Corporate Communication  
 
-## 1. Tentang Organisasi
-Majelis Debu Bintang adalah entitas teknologi penyedia solusi enterprise big data, analitik cerdas, dan infrastruktur kecerdasan buatan terkemuka di Indonesia. Didirikan dengan misi memperkuat kedaulatan data dan rekayasa cerdas melalui platform teknologi tinggi yang aman, scalable, dan terpercaya.
+## 1. Tentang Perusahaan
+PT Majelis Debu Bintang adalah entitas teknologi penyedia solusi enterprise big data, analitik cerdas, dan infrastruktur kecerdasan buatan terkemuka di Indonesia. Didirikan dengan misi memperkuat kedaulatan data dan rekayasa cerdas melalui platform teknologi tinggi yang aman, scalable, dan terpercaya.
 
 ## 2. Nilai-Nilai Utama (Core Values)
 1. **Integritas Tanpa Kompromi**: Kejujuran intelektual dan etika kerja menjadi landasan seluruh interaksi dan pengembangan sistem.
