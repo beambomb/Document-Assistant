@@ -37,9 +37,11 @@ def ndcg_at_k(retrieved_ids: List[str], relevant_ids: List[str], k: int = 5) -> 
 
     # Calculate Discounted Cumulative Gain (DCG)
     dcg = 0.0
+    seen_relevant: Set[str] = set()
     for i, item_id in enumerate(top_k, start=1):
-        rel = 1.0 if item_id in relevant_set else 0.0
-        dcg += rel / math.log2(i + 1)
+        if item_id in relevant_set and item_id not in seen_relevant:
+            dcg += 1.0 / math.log2(i + 1)
+            seen_relevant.add(item_id)
 
     # Calculate Ideal Discounted Cumulative Gain (IDCG)
     idcg = 0.0

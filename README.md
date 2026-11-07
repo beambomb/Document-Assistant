@@ -54,12 +54,13 @@ All metrics are generated using the reproducible evaluation harness (`python -m 
 
 | Configuration / Mode | Recall@1 | Recall@3 | Recall@5 | MRR | nDCG@5 | ACL Leakage Rate | Trap Rejection Rate | Mean Latency |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **BM25 Lexical Only** | 100.0% | 100.0% | 100.0% | 1.000 | 2.314 | **0.00%** | 12.5% | 0.7 ms |
-| **Dense Vector Only** | 20.0% | 30.0% | 80.0% | 0.348 | 0.769 | **0.00%** | 0.0% | 0.4 ms |
-| **Hybrid (BM25 + Dense RRF)** | 80.0% | 90.0% | 100.0% | 0.853 | 1.647 | **0.00%** | 12.5% | 1.0 ms |
-| **Hybrid + Cross-Reranker** | **100.0%** | **100.0%** | **100.0%** | **1.000** | **2.311** | **0.00%** | **100.0%** | **1.2 ms** |
+| **BM25 Lexical Only** | 100.0% | 100.0% | 100.0% | 1.000 | 1.000 | **0.00%** | 12.5% | 0.8 ms |
+| **Dense Vector Only** | 40.0% | 60.0% | 80.0% | 0.545 | 0.608 | **0.00%** | 0.0% | 0.5 ms |
+| **Hybrid (BM25 + Dense RRF)** | 80.0% | 100.0% | 100.0% | 0.883 | 0.913 | **0.00%** | 12.5% | 1.6 ms |
+| **Hybrid + Cross-Reranker** | **100.0%** | **100.0%** | **100.0%** | **1.000** | **1.000** | **0.00%** | **100.0%** | **1.5 ms** |
 
 ### Benchmark Analysis:
+- **Benchmark Configuration Note**: The table above reflects automated regression test runs on the enterprise test suite (10 domain QA queries, 8 out-of-scope trap queries, 6 adversarial access probes) using deterministic offline mock encoders to ensure sub-second CI test execution. In production with neural inference (`sentence-transformers/all-MiniLM-L6-v2` and cross-encoders on CPU/GPU), retrieval latency typically ranges between 30 ms and 150 ms per query.
 - **Zero Access Leakage Guarantee**: 0.00% leakage across all adversarial penetration queries. Low-clearance accounts (`guest`, `employee`) attempting to query confidential executive compensation policies are strictly blocked.
 - **Robust Abstention (100% Trap Rejection)**: Out-of-scope queries (general trivia, recipes, and non-existent company benefits) are safely rejected via the confidence gate.
 - **Hybrid Fusion Stability**: Reciprocal Rank Fusion combines exact alphanumeric identifier matching (e.g., `SOP-IT-001`, `KEB-HR-002`) with multilingual semantic context.

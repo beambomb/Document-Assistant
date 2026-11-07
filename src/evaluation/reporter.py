@@ -47,6 +47,7 @@ class EvaluationReporter:
         output_csv_path: Path | None = None,
     ) -> str:
         """Saves evaluation report to disk."""
+        output_md_path = Path(output_md_path)
         output_md_path.parent.mkdir(parents=True, exist_ok=True)
 
         table_md = EvaluationReporter.generate_markdown_table(rows)

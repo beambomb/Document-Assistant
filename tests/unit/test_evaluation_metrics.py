@@ -34,6 +34,15 @@ def test_ndcg_calculation():
     assert round(score, 2) == 1.00
 
 
+def test_ndcg_duplicate_chunks_bounded_between_0_and_1():
+    # If multiple chunks of the same relevant document are retrieved, nDCG must never exceed 1.0
+    retrieved = ["doc_rel", "doc_rel", "doc_rel", "doc_rel", "doc_rel"]
+    relevant = ["doc_rel"]
+    score = ndcg_at_k(retrieved, relevant, k=5)
+    assert 0.0 <= score <= 1.0
+    assert round(score, 4) == 1.0000
+
+
 def test_acl_leakage_detection():
     retrieved = ["PUB-001", "SOP-IT-001", "KEB-SEC-005"]
     prohibited = ["KEB-SEC-005"]
