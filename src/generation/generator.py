@@ -8,7 +8,7 @@ import httpx
 from src.core.models import RetrievalCandidate, QueryResult, Citation
 from config.settings import settings
 
-ENTERPRISE_SYSTEM_PROMPT = """Anda adalah Asisten Dokumen Resmi Perusahaan PT Dua Empat Tujuh Nusantara Technology.
+ENTERPRISE_SYSTEM_PROMPT = """Anda adalah Asisten Dokumen Resmi Majelis Debu Bintang.
 Tugas Anda adalah menjawab pertanyaan pengguna secara lugas, akurat, dan profesional HANYA berdasarkan dokumen konteks yang diberikan di bawah ini.
 
 ATURAN WAJIB (STRICT GUARDRAILS):

@@ -9,7 +9,7 @@
 > DOKUMEN INI BERSIFAT SANGAT RAHASIA (CONFIDENTIAL). HANYA BOLEH DIAKSES OLEH DIREKSI, KOMISARIS, DAN TIM EXECUTIVE HR. PENGUNGKAPAN TANPA IZIN MERUPAKAN PELANGGARAN HUKUM DAN BERAKIBAT PEMUTUSAN HUBUNGAN KERJA SERTA TUNTUTAN PIDANA.
 
 ## 1. Komponen Remunerasi Direksi
-Kompensasi jajaran Direksi PT Dua Empat Tujuh Nusantara Technology terdiri atas:
+Kompensasi jajaran Direksi Majelis Debu Bintang terdiri atas:
 1. **Gaji Pokok Eksekutif**: 
    - Chief Executive Officer (CEO): Rp 120.000.000 per bulan.
    - Chief Technology Officer (CTO): Rp 95.000.000 per bulan.
