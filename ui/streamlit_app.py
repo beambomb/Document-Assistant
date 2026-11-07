@@ -18,6 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 import html
 import time
+from datetime import datetime
 import streamlit as st
 import pandas as pd
 
@@ -215,15 +216,28 @@ st.markdown(
     div[data-testid="stBottom"] {
         background-color: var(--bg) !important;
         border-top: 1px solid var(--border-subtle) !important;
+        padding-top: 4px !important;
+        padding-bottom: 4px !important;
     }
     div[data-testid="stBottom"] > div {
         max-width: 860px !important;
         margin: 0 auto !important;
-        padding-bottom: 1.25rem !important;
-        padding-top: 0.5rem !important;
+        padding-top: 0 !important;
+        padding-bottom: 2px !important;
     }
     div[data-testid="stChatInput"] {
+        padding-top: 0 !important;
         padding-bottom: 0 !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+    }
+    div[data-testid="stBottom"] footer,
+    footer[data-testid="stFooter"],
+    footer {
+        display: none !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
     div[data-testid="stChatInput"] > div {
         background: var(--surface) !important;
@@ -542,6 +556,82 @@ with tab_eval:
 with tab_corpus:
     st.markdown('<h2 style="font-size: 1.6rem; margin-bottom: 2px;">Dokumen Resmi</h2>', unsafe_allow_html=True)
     st.caption("Daftar dokumen operasional terdaftar dalam sistem PT Majelis Debu Bintang:")
+
+    # --- TAMBAH DOKUMEN BARU (UPLOAD & FORM INPUT) ---
+    with st.expander("+ Tambah Dokumen Baru (Upload & Indeks)", expanded=False):
+        st.markdown(
+            '<div style="font-size: 0.88rem; color: #FAF7F2; font-weight: 500; margin-bottom: 8px;">Upload atau Buat Dokumen Baru</div>',
+            unsafe_allow_html=True,
+        )
+        st.caption("Dokumen baru akan otomatis dipecah menjadi chunks dan diindeks secara langsung ke dalam BM25 & Dense Vector Index.")
+
+        up_col1, up_col2 = st.columns(2)
+        new_doc_id = up_col1.text_input("Nomor Dokumen", placeholder="misal: SOP-OPS-006", key="input_doc_id")
+        new_title = up_col2.text_input("Judul Dokumen", placeholder="misal: SOP Pengelolaan Fasilitas Kantor", key="input_doc_title")
+
+        up_col3, up_col4 = st.columns(2)
+        dept_options = ["Umum", "Operasional", "IT", "HR", "Keuangan", "Legal"]
+        new_department = up_col3.selectbox("Departemen / Divisi", options=dept_options, key="select_dept")
+        new_roles = up_col4.multiselect(
+            "Klasifikasi Hak Akses",
+            options=["guest", "employee", "finance", "hr", "management", "admin"],
+            default=["employee"],
+            key="multiselect_roles",
+            help="Peran pengguna mana saja yang diizinkan mengakses dokumen ini.",
+        )
+
+        uploaded_doc = st.file_uploader("Upload Dokumen (.md / .txt)", type=["md", "txt"], key="upload_doc_file")
+        default_body = ""
+        if uploaded_doc is not None:
+            try:
+                default_body = uploaded_doc.read().decode("utf-8")
+            except Exception:
+                default_body = ""
+
+        new_content = st.text_area(
+            "Isi / Konten Dokumen (Markdown)",
+            value=default_body,
+            height=160,
+            placeholder="Tuliskan isi SOP, kebijakan, atau aturan operasional resmi di sini...",
+            key="input_doc_content",
+        )
+
+        if st.button("Simpan & Indeks Dokumen", use_container_width=True, key="btn_save_doc"):
+            if not new_doc_id or not new_title or not new_content.strip():
+                st.error("Mohon lengkapi Nomor Dokumen, Judul Dokumen, dan Isi Konten.")
+            else:
+                dept_folder = settings.raw_data_dir / "id_enterprise" / new_department.lower().replace(" ", "_")
+                dept_folder.mkdir(parents=True, exist_ok=True)
+                clean_filename = f"{new_doc_id.strip().upper()}.md"
+                target_filepath = dept_folder / clean_filename
+
+                role_str = ", ".join(new_roles) if new_roles else "employee"
+                today_str = datetime.now().strftime("%Y-%m-%d")
+
+                md_header = f"""# {new_title.strip()}
+
+**Nomor Dokumen**: {new_doc_id.strip().upper()}  
+**Versi**: 1.0  
+**Tanggal Berlaku**: {today_str}  
+**Klasifikasi Akses**: {role_str}  
+**Divisi**: {new_department}  
+
+---
+
+"""
+                final_text = new_content.strip()
+                if not final_text.startswith("#"):
+                    final_text = md_header + final_text
+
+                with open(target_filepath, "w", encoding="utf-8") as f:
+                    f.write(final_text)
+
+                load_rag_engine.clear()
+                st.success(f"Dokumen {new_doc_id.strip().upper()} berhasil disimpan dan diindeks ulang!")
+                time.sleep(0.6)
+                st.rerun()
+
+    st.write("")
 
     dept_groups = {}
     for d in docs:

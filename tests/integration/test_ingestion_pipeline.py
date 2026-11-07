@@ -12,8 +12,8 @@ def test_load_all_enterprise_documents():
 
     docs, chunks = loader.load_directory_markdown(enterprise_dir)
 
-    # We created 5 enterprise SOP documents
-    assert len(docs) == 5
+    # Ensure all foundational enterprise SOP documents are present
+    assert len(docs) >= 5
     doc_ids = {d.doc_id for d in docs}
     expected_ids = {"PUB-GEN-001", "SOP-IT-001", "KEB-HR-002", "SOP-FIN-003", "KEB-SEC-005"}
     assert expected_ids.issubset(doc_ids)
