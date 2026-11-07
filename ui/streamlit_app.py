@@ -546,8 +546,8 @@ with tab_eval:
     st.markdown('<h2 style="font-size: 1.6rem; margin-bottom: 2px;">Evaluasi & Benchmark</h2>', unsafe_allow_html=True)
     st.caption("Uji kuantitatif Information Retrieval, Keamanan Hak Akses (ACL), dan Abstention.")
 
-    if st.button("Jalankan Evaluasi"):
-        with st.spinner("Menjalankan evaluasi..."):
+    if st.button("Jalankan Evaluasi Ulang"):
+        with st.spinner("Menjalankan evaluasi kuantitatif..."):
             harness = EvaluationHarness(dataset_name="id_enterprise", use_mock_embeddings=True)
             results = harness.run_ablation()
             EvaluationReporter.save_report(
@@ -557,13 +557,33 @@ with tab_eval:
             )
             st.success("Evaluasi selesai.")
 
-    # Read existing report
+    # Render benchmark table directly and prominently on screen
+    csv_file = Path("reports/ablation_results.csv")
+    if csv_file.exists():
+        try:
+            df = pd.read_csv(csv_file)
+            display_df = pd.DataFrame({
+                "Konfigurasi": df["mode"],
+                "Recall@1": df["recall_at_1"].map(lambda x: f"{x*100:.1f}%"),
+                "Recall@3": df["recall_at_3"].map(lambda x: f"{x*100:.1f}%"),
+                "Recall@5": df["recall_at_5"].map(lambda x: f"{x*100:.1f}%"),
+                "MRR": df["mrr"].map(lambda x: f"{x:.3f}"),
+                "nDCG@5": df["ndcg_at_5"].map(lambda x: f"{x:.3f}"),
+                "Kebocoran ACL": df["leakage_rate_pct"].map(lambda x: f"{x:.2f}%"),
+                "Penolakan Jebakan": df["trap_rejection_pct"].map(lambda x: f"{x:.1f}%"),
+                "Latensi": df["latency_ms"].map(lambda x: f"{x:.1f} ms"),
+            })
+            st.write("")
+            st.dataframe(display_df, use_container_width=True, hide_index=True)
+        except Exception:
+            pass
+
+    # Narrative analysis in clean quiet expander
     report_file = Path("reports/ablation_results.md")
     if report_file.exists():
-        with open(report_file, "r", encoding="utf-8") as f:
-            st.markdown(f.read())
-    else:
-        st.caption("Laporan belum tersedia. Klik tombol di atas untuk menjalankan.")
+        with st.expander("Ringkasan Metrik & Analisis Temuan"):
+            with open(report_file, "r", encoding="utf-8") as f:
+                st.markdown(f.read())
 
 with tab_corpus:
     st.markdown('<h2 style="font-size: 1.6rem; margin-bottom: 2px;">Dokumen Resmi</h2>', unsafe_allow_html=True)

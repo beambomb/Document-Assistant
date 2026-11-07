@@ -149,7 +149,6 @@ class LocalGGUFGenerator(BaseGenerator):
     def _load_model(self):
         global _SHARED_GGUF_INSTANCE
         if _SHARED_GGUF_INSTANCE is None:
-            # Try llama_cpp first, then ctransformers
             try:
                 from llama_cpp import Llama
                 _SHARED_GGUF_INSTANCE = Llama(
@@ -159,20 +158,10 @@ class LocalGGUFGenerator(BaseGenerator):
                     verbose=False,
                 )
             except ImportError:
-                try:
-                    from ctransformers import AutoModelForCausalLM
-                    _SHARED_GGUF_INSTANCE = AutoModelForCausalLM.from_pretrained(
-                        str(self.model_path),
-                        model_type="llama",
-                        threads=self.n_threads,
-                    )
-                except ImportError:
-                    raise RuntimeError(
-                        "Untuk menjalankan model GGUF lokal di Python, silakan install salah satu engine:\n"
-                        "  pip install llama-cpp-python\n"
-                        "atau\n"
-                        "  pip install ctransformers"
-                    )
+                raise RuntimeError(
+                    "Engine GGUF lokal membutuhkan paket 'llama-cpp-python'.\n"
+                    "Silakan install dengan perintah: pip install llama-cpp-python"
+                )
         return _SHARED_GGUF_INSTANCE
 
     def format_context(self, chunks: List[RetrievalCandidate]) -> str:
@@ -212,27 +201,21 @@ class LocalGGUFGenerator(BaseGenerator):
             gen_tokens = min(settings.max_tokens, 256)
             stop_tokens = ["<|im_end|>", "<|endoftext|>", "###"]
 
-            if hasattr(llm, "create_chat_completion"):
-                # llama-cpp chat interface
-                resp = llm.create_chat_completion(
-                    messages=[
-                        {"role": "system", "content": ENTERPRISE_SYSTEM_PROMPT},
-                        {"role": "user", "content": f"KONTEKS DOKUMEN:\n{context_str}\n\nPERTANYAAN PENGGUNA:\n{query}"},
-                    ],
-                    max_tokens=gen_tokens,
-                    temperature=settings.temperature,
-                    stop=stop_tokens,
-                )
-                return resp["choices"][0]["message"]["content"].strip()
-            else:
-                # ctransformers text interface
-                prompt = (
-                    f"### SYSTEM:\n{ENTERPRISE_SYSTEM_PROMPT}\n\n"
-                    f"### USER:\nKONTEKS DOKUMEN:\n{context_str}\n\nPERTANYAAN PENGGUNA:\n{query}\n\n"
-                    f"### ASSISTANT:\n"
-                )
-                return llm(prompt, max_new_tokens=gen_tokens).strip()
+            resp = llm.create_chat_completion(
+                messages=[
+                    {"role": "system", "content": ENTERPRISE_SYSTEM_PROMPT},
+                    {"role": "user", "content": f"KONTEKS DOKUMEN:\n{context_str}\n\nPERTANYAAN PENGGUNA:\n{query}"},
+                ],
+                max_tokens=gen_tokens,
+                temperature=settings.temperature,
+                stop=stop_tokens,
+            )
+            return resp["choices"][0]["message"]["content"].strip()
         except Exception as e:
+            return (
+                f"Error eksekusi GGUF: {e}. "
+                f"Gunakan fallback: {MockGenerator().generate(query, retrieved_chunks, user_roles)}"
+            )
             return (
                 f"Error eksekusi GGUF: {e}. "
                 f"Gunakan fallback: {MockGenerator().generate(query, retrieved_chunks, user_roles)}"
