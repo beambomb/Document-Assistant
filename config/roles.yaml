@@ -1,0 +1,59 @@
+# Role definitions and hierarchical permissions
+roles:
+  guest:
+    description: "Tamu publik atau pengguna eksternal"
+    allowed_access_roles:
+      - "public"
+    can_view_confidential: false
+
+  employee:
+    description: "Karyawan tetap atau kontrak umum"
+    allowed_access_roles:
+      - "public"
+      - "internal"
+      - "employee"
+    can_view_confidential: false
+
+  finance:
+    description: "Divisi Keuangan dan Akuntansi"
+    allowed_access_roles:
+      - "public"
+      - "internal"
+      - "employee"
+      - "finance"
+    can_view_confidential: false
+
+  hr:
+    description: "Divisi Human Resources & People Operations"
+    allowed_access_roles:
+      - "public"
+      - "internal"
+      - "employee"
+      - "hr"
+    can_view_confidential: false
+
+  management:
+    description: "Direksi, C-Level, dan Kepala Divisi"
+    allowed_access_roles:
+      - "public"
+      - "internal"
+      - "employee"
+      - "finance"
+      - "hr"
+      - "management"
+      - "confidential"
+    can_view_confidential: true
+
+  admin:
+    description: "System Administrator & Data Officer"
+    allowed_access_roles:
+      - "public"
+      - "internal"
+      - "employee"
+      - "finance"
+      - "hr"
+      - "management"
+      - "confidential"
+      - "admin"
+    can_view_confidential: true
+
