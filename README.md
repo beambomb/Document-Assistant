@@ -4,9 +4,6 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-> **Professional Summary (for CV / Portfolio):**  
-> Designed and built an enterprise-grade Retrieval-Augmented Generation (RAG) assistant for internal corporate policies with pre-retrieval Role-Based Access Control (RBAC), mandatory citations, and automated abstention for out-of-scope queries. Every component is measured empirically using a multi-domain evaluation harness covering Information Retrieval metrics (Recall@k, MRR, nDCG), zero-leakage security benchmarks, and factual faithfulness.
-
 ---
 
 ## 1. Problem Statement
