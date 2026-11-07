@@ -11,7 +11,7 @@ def sample_chunks():
         Chunk(
             chunk_id="chk_pub",
             doc_id="PUB-001",
-            title="Profil PT Dua Empat Tujuh",
+            title="Profil PT Majelis Debu Bintang",
             text="Perusahaan penyedia teknologi analitik big data di Jakarta.",
             access_roles=["public"],
         ),

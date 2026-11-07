@@ -37,10 +37,10 @@ def test_mock_generator_abstains_on_empty_context():
 def test_openrouter_generator_fallback_without_key():
     # When api_key is empty, it safely delegates to mock generator
     gen = OpenRouterGenerator(api_key="")
-    cand = make_candidate("PUB-GEN-001", "Profil Perusahaan", "PT Dua Empat Tujuh Nusantara.")
+    cand = make_candidate("PUB-GEN-001", "Profil Perusahaan", "PT Majelis Debu Bintang.")
     answer = gen.generate("Apa nama perusahaan?", [cand], ["guest"])
 
-    assert "PT Dua Empat Tujuh Nusantara" in answer
+    assert "PT Majelis Debu Bintang" in answer
     assert "[Doc: PUB-GEN-001, Hal: 1]" in answer
 
 

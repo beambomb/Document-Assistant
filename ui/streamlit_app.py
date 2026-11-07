@@ -211,9 +211,19 @@ st.markdown(
         margin: 6px 0;
     }
 
-    /* Bottom Chat Input (Let Streamlit handle full width & bottom positioning naturally) */
+    /* Bottom Docked Chat Input (Streamlit native stBottom container) */
+    div[data-testid="stBottom"] {
+        background-color: var(--bg) !important;
+        border-top: 1px solid var(--border-subtle) !important;
+    }
+    div[data-testid="stBottom"] > div {
+        max-width: 860px !important;
+        margin: 0 auto !important;
+        padding-bottom: 1.25rem !important;
+        padding-top: 0.5rem !important;
+    }
     div[data-testid="stChatInput"] {
-        padding-bottom: 1.5rem !important;
+        padding-bottom: 0 !important;
     }
     div[data-testid="stChatInput"] > div {
         background: var(--surface) !important;
@@ -237,6 +247,14 @@ st.markdown(
     }
     div[data-testid="stChatInput"] button:hover {
         background: var(--terracotta-hover) !important;
+    }
+
+    /* Quietly hide bottom chat bar when viewing Benchmark or Dokumen tabs */
+    body:has(button[data-testid="stTab"]:nth-child(2)[aria-selected="true"]) div[data-testid="stBottom"],
+    body:has(button[data-testid="stTab"]:nth-child(3)[aria-selected="true"]) div[data-testid="stBottom"],
+    body:has(button[role="tab"]:nth-child(2)[aria-selected="true"]) div[data-testid="stBottom"],
+    body:has(button[role="tab"]:nth-child(3)[aria-selected="true"]) div[data-testid="stBottom"] {
+        display: none !important;
     }
 
     /* Sidebar Styling */
@@ -371,6 +389,7 @@ with st.sidebar:
     )
 
 # --- MAIN WORKSPACE TABS ---
+quick_query = None
 tab_chat, tab_eval, tab_corpus = st.tabs([
     "Percakapan",
     "Benchmark",
@@ -393,7 +412,6 @@ with tab_chat:
 
     # Sleek Horizontal Prompt Pills
     p1, p2, p3, p4 = st.columns(4)
-    quick_query = None
 
     if p1.button("Sandi Laptop IT"):
         quick_query = "Berapa panjang minimal kata sandi laptop dan seberapa sering wajib diperbarui?"
@@ -478,60 +496,6 @@ with tab_chat:
             unsafe_allow_html=True,
         )
 
-    # --- FLOATING CHAT INPUT AT THE BOTTOM ---
-    query_input = st.chat_input("Tanyakan sesuatu tentang dokumen organisasi...")
-    active_query = quick_query or query_input
-
-    if active_query:
-        # Append User Message immediately to session state
-        st.session_state.chat_history.append({
-            "role": "user",
-            "content": active_query,
-            "role_label": role_options[selected_role],
-        })
-
-        user = UserContext(user_id="user_active", roles=[selected_role])
-        t0 = time.perf_counter()
-
-        # Step 1: Hybrid Retrieval with ACL pre-filtering
-        fused = retriever.search(active_query, user, top_k=settings.top_k_fused)
-
-        # Step 2: Cross-Encoder Reranking
-        reranked = reranker.rerank(active_query, fused, top_k=settings.top_k_final)
-
-        # Step 3: Confidence Gating
-        should_abstain, refusal_reason, conf_score = gate.evaluate(reranked)
-
-        latency_ms = (time.perf_counter() - t0) * 1000
-
-        if should_abstain:
-            st.session_state.chat_history.append({
-                "role": "assistant",
-                "content": refusal_reason,
-                "abstained": True,
-                "score": conf_score,
-                "latency_ms": latency_ms,
-            })
-        else:
-            answer = generator.generate(active_query, reranked, [selected_role])
-            citations, precision, _ = verifier.extract_and_verify(answer, reranked)
-
-            cit_dicts = [
-                {"doc_id": c.doc_id, "section": c.section, "page": c.page}
-                for c in citations
-            ]
-
-            st.session_state.chat_history.append({
-                "role": "assistant",
-                "content": answer,
-                "abstained": False,
-                "citations": cit_dicts,
-                "score": conf_score,
-                "latency_ms": latency_ms,
-            })
-
-        st.rerun()
-
 with tab_eval:
     st.markdown('<h2 style="font-size: 1.6rem; margin-bottom: 2px;">Evaluasi & Benchmark</h2>', unsafe_allow_html=True)
     st.caption("Uji kuantitatif Information Retrieval, Keamanan Hak Akses (ACL), dan Abstention.")
@@ -591,3 +555,58 @@ with tab_corpus:
                 st.markdown("---")
                 st.markdown(d.content)
         st.write("")
+
+# --- VIEWPORT-LOCKED BOTTOM CHAT INPUT (ROOT CONTAINER) ---
+query_input = st.chat_input("Tanyakan sesuatu tentang dokumen organisasi...")
+active_query = quick_query or query_input
+
+if active_query:
+    # Append User Message immediately to session state
+    st.session_state.chat_history.append({
+        "role": "user",
+        "content": active_query,
+        "role_label": role_options[selected_role],
+    })
+
+    user = UserContext(user_id="user_active", roles=[selected_role])
+    t0 = time.perf_counter()
+
+    # Step 1: Hybrid Retrieval with ACL pre-filtering
+    fused = retriever.search(active_query, user, top_k=settings.top_k_fused)
+
+    # Step 2: Cross-Encoder Reranking
+    reranked = reranker.rerank(active_query, fused, top_k=settings.top_k_final)
+
+    # Step 3: Confidence Gating
+    should_abstain, refusal_reason, conf_score = gate.evaluate(reranked)
+
+    latency_ms = (time.perf_counter() - t0) * 1000
+
+    if should_abstain:
+        st.session_state.chat_history.append({
+            "role": "assistant",
+            "content": refusal_reason,
+            "abstained": True,
+            "score": conf_score,
+            "latency_ms": latency_ms,
+        })
+    else:
+        answer = generator.generate(active_query, reranked, [selected_role])
+        citations, precision, _ = verifier.extract_and_verify(answer, reranked)
+
+        cit_dicts = [
+            {"doc_id": c.doc_id, "section": c.section, "page": c.page}
+            for c in citations
+        ]
+
+        st.session_state.chat_history.append({
+            "role": "assistant",
+            "content": answer,
+            "abstained": False,
+            "citations": cit_dicts,
+            "score": conf_score,
+            "latency_ms": latency_ms,
+        })
+
+    st.rerun()
+

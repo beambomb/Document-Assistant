@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  ui:
+    build: .
+    container_name: majelis_debu_bintang_ui
+    ports:
+      - "8501:8501"
+    environment:
+      - LLM_PROVIDER=gguf
+      - LOCAL_MODEL_PATH=models/qwen2.5-0.5b-instruct-q4_k_m.gguf
+      - ENVIRONMENT=production
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - ./models:/app/models
+
+  api:
+    build: .
+    container_name: majelis_debu_bintang_api
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      - LLM_PROVIDER=gguf
+      - LOCAL_MODEL_PATH=models/qwen2.5-0.5b-instruct-q4_k_m.gguf
+      - ENVIRONMENT=production
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
