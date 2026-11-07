@@ -9,13 +9,13 @@ from src.core.models import RetrievalCandidate, QueryResult, Citation
 from config.settings import settings
 
 ENTERPRISE_SYSTEM_PROMPT = """Anda adalah Asisten Dokumen Resmi PT Majelis Debu Bintang.
-Tugas Anda adalah menjawab pertanyaan pengguna secara lugas, akurat, dan profesional HANYA berdasarkan dokumen konteks yang diberikan di bawah ini.
+Tugas Anda adalah menjawab pertanyaan pengguna secara lugas, padat, dan akurat HANYA berdasarkan dokumen yang diberikan.
 
-ATURAN WAJIB (STRICT GUARDRAILS):
-1. HANYA gunakan fakta yang tertulis eksplisit dalam konteks dokumen. Dilarang keras berasumsi atau menggunakan pengetahuan umum eksternal.
-2. Setiap kalimat yang memuat fakta atau angka WAJIB menyertakan tag sitasi di akhir kalimat dalam format: [Doc: <ID_DOKUMEN>, Hal: <NOMOR_HALAMAN>] atau [Doc: <ID_DOKUMEN>].
-3. Jika informasi yang ditanyakan sama sekali tidak ada di dalam konteks dokumen, Anda WAJIB menyatakan:
-   "Maaf, informasi ini tidak ditemukan dalam dokumen resmi yang tersedia untuk akun Anda."
+ATURAN WAJIB:
+1. Jawab langsung inti pertanyaan tanpa mengulang pertanyaan pengguna dan tanpa menyalin format template dokumen.
+2. Setiap kalimat yang memuat fakta wajib menyertakan sitasi dokumen di akhir kalimat dalam format: [Doc: <ID_DOKUMEN>, Hal: <NOMOR_HALAMAN>] atau [Doc: <ID_DOKUMEN>].
+3. Dilarang mengulang-ulang kalimat atau frasa yang sama. Susun jawaban dalam bahasa Indonesia yang alami dan profesional.
+4. Jika informasi tidak ada dalam dokumen resmi yang tersedia, nyatakan: "Maaf, informasi ini tidak ditemukan dalam dokumen resmi yang tersedia untuk akun Anda."
 """
 
 
@@ -68,15 +68,9 @@ class OpenRouterGenerator(BaseGenerator):
         context_blocks = []
         for i, c in enumerate(chunks, start=1):
             chunk = c.chunk
-            block = (
-                f"--- DOKUMEN #{i} ---\n"
-                f"ID Dokumen: {chunk.doc_id}\n"
-                f"Judul: {chunk.title}\n"
-                f"Bagian: {chunk.section} (Halaman {chunk.page})\n"
-                f"Isi Dokumen:\n{chunk.text}\n"
-            )
+            block = f"[{chunk.doc_id} - {chunk.title}, Hal. {chunk.page}]\n{chunk.text}"
             context_blocks.append(block)
-        return "\n".join(context_blocks)
+        return "\n\n".join(context_blocks)
 
     def generate(
         self,
@@ -168,15 +162,9 @@ class LocalGGUFGenerator(BaseGenerator):
         context_blocks = []
         for i, c in enumerate(chunks, start=1):
             chunk = c.chunk
-            block = (
-                f"--- DOKUMEN #{i} ---\n"
-                f"ID Dokumen: {chunk.doc_id}\n"
-                f"Judul: {chunk.title}\n"
-                f"Bagian: {chunk.section} (Halaman {chunk.page})\n"
-                f"Isi Dokumen:\n{chunk.text}\n"
-            )
+            block = f"[{chunk.doc_id} - {chunk.title}, Hal. {chunk.page}]\n{chunk.text}"
             context_blocks.append(block)
-        return "\n".join(context_blocks)
+        return "\n\n".join(context_blocks)
 
     def generate(
         self,
@@ -198,21 +186,29 @@ class LocalGGUFGenerator(BaseGenerator):
         try:
             llm = self._load_model()
             context_str = self.format_context(retrieved_chunks)
-            gen_tokens = min(settings.max_tokens, 256)
-            stop_tokens = ["<|im_end|>", "<|im_start|>", "<|endoftext|>", "###", "\n--- DOKUMEN", "\nKONTEKS:"]
+            gen_tokens = min(settings.max_tokens, 350)
+            stop_tokens = [
+                "<|im_end|>", "<|im_start|>", "<|endoftext|>", "###",
+                "\nPERTANYAAN:", "\nDOKUMEN:"
+            ]
 
             resp = llm.create_chat_completion(
                 messages=[
                     {"role": "system", "content": ENTERPRISE_SYSTEM_PROMPT},
-                    {"role": "user", "content": f"KONTEKS DOKUMEN:\n{context_str}\n\nPERTANYAAN PENGGUNA:\n{query}\n\nJAWABAN RESMI (singkat, padat, berdasar dokumen di atas beserta sitasi [Doc: <ID>, Hal: <Halaman>]):"},
+                    {"role": "user", "content": f"DOKUMEN RESMI:\n{context_str}\n\nPERTANYAAN: {query}\n\nJAWABAN LANGSUNG:"},
                 ],
                 max_tokens=gen_tokens,
-                temperature=settings.temperature,
+                temperature=0.3,
+                top_p=0.9,
+                repeat_penalty=1.22,
+                frequency_penalty=0.35,
+                presence_penalty=0.2,
                 stop=stop_tokens,
             )
             raw_answer = resp["choices"][0]["message"]["content"].strip()
-            if raw_answer.startswith("JAWABAN RESMI:") or raw_answer.startswith("Jawaban:"):
-                raw_answer = raw_answer.split(":", 1)[1].strip()
+            for prefix in ["JAWABAN LANGSUNG:", "JAWABAN RESMI:", "JAWABAN:", "Jawaban:"]:
+                if raw_answer.startswith(prefix):
+                    raw_answer = raw_answer[len(prefix):].strip()
             return raw_answer
         except Exception as e:
             return (
@@ -221,11 +217,11 @@ class LocalGGUFGenerator(BaseGenerator):
             )
 
 
-def get_generator() -> BaseGenerator:
+def get_generator(provider: Optional[str] = None) -> BaseGenerator:
     """Factory creating configured generator instance."""
-    provider = settings.llm_provider.lower().strip()
-    if provider in ["gguf", "local"]:
+    active = (provider or settings.llm_provider).lower().strip()
+    if active in ["gguf", "local"]:
         return LocalGGUFGenerator()
-    if provider == "openrouter":
+    if active == "openrouter":
         return OpenRouterGenerator()
     return MockGenerator()

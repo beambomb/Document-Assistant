@@ -436,14 +436,28 @@ with st.sidebar:
 
     st.divider()
 
+    st.markdown('<div style="font-size: 0.78rem; font-weight: 600; color: #FAF7F2; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Mesin AI (LLM)</div>', unsafe_allow_html=True)
+    engine_options = {
+        "gguf": "Model Lokal CPU (Qwen 0.5B)",
+        "openrouter": "Cloud AI (Nemotron 30B / Free)",
+    }
+    selected_provider = st.radio(
+        "Penyedia LLM",
+        options=list(engine_options.keys()),
+        format_func=lambda x: engine_options[x],
+        index=0 if settings.llm_provider.lower() in ["gguf", "local"] else 1,
+        label_visibility="collapsed",
+    )
+
+    st.divider()
+
     # Quiet System Metadata
-    active_provider = settings.llm_provider.lower()
-    if active_provider in ["gguf", "local"]:
+    if selected_provider == "gguf":
         model_display = Path(settings.local_model_path).name
         engine_display = "Qwen 2.5 (Lokal CPU)"
-    elif active_provider == "openrouter":
+    elif selected_provider == "openrouter":
         model_display = settings.openrouter_model
-        engine_display = "OpenRouter"
+        engine_display = "OpenRouter (Cloud)"
     else:
         model_display = "Deterministic"
         engine_display = "Mock"
@@ -645,7 +659,8 @@ if active_tab == "Percakapan":
                 "latency_ms": latency_ms,
             })
         else:
-            answer = generator.generate(active_query, reranked, [selected_role])
+            active_gen = get_generator(selected_provider)
+            answer = active_gen.generate(active_query, reranked, [selected_role])
             citations, precision, _ = verifier.extract_and_verify(answer, reranked)
 
             cit_dicts = [
