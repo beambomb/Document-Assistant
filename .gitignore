@@ -23,7 +23,9 @@ data/indices/
 *.faiss
 *.chroma
 
-# Downloaded HuggingFace cache
+# Downloaded HuggingFace cache & Local Models
+models/
+*.gguf
 models_cache/
 .cache/
 

@@ -127,6 +127,9 @@ class OpenRouterGenerator(BaseGenerator):
             return MockGenerator().generate(query, retrieved_chunks, user_roles)
 
 
+_SHARED_GGUF_INSTANCE = None
+
+
 class LocalGGUFGenerator(BaseGenerator):
     """
     Offline local LLM generator using GGUF quantized models (llama-cpp-python or ctransformers).
@@ -142,14 +145,14 @@ class LocalGGUFGenerator(BaseGenerator):
         self.model_path = model_path or settings.local_model_path
         self.n_ctx = n_ctx or settings.local_model_ctx
         self.n_threads = n_threads or settings.local_model_threads
-        self._llm = None
 
     def _load_model(self):
-        if self._llm is None:
+        global _SHARED_GGUF_INSTANCE
+        if _SHARED_GGUF_INSTANCE is None:
             # Try llama_cpp first, then ctransformers
             try:
                 from llama_cpp import Llama
-                self._llm = Llama(
+                _SHARED_GGUF_INSTANCE = Llama(
                     model_path=str(self.model_path),
                     n_ctx=self.n_ctx,
                     n_threads=self.n_threads,
@@ -158,7 +161,7 @@ class LocalGGUFGenerator(BaseGenerator):
             except ImportError:
                 try:
                     from ctransformers import AutoModelForCausalLM
-                    self._llm = AutoModelForCausalLM.from_pretrained(
+                    _SHARED_GGUF_INSTANCE = AutoModelForCausalLM.from_pretrained(
                         str(self.model_path),
                         model_type="llama",
                         threads=self.n_threads,
@@ -170,7 +173,7 @@ class LocalGGUFGenerator(BaseGenerator):
                         "atau\n"
                         "  pip install ctransformers"
                     )
-        return self._llm
+        return _SHARED_GGUF_INSTANCE
 
     def format_context(self, chunks: List[RetrievalCandidate]) -> str:
         context_blocks = []
@@ -206,6 +209,8 @@ class LocalGGUFGenerator(BaseGenerator):
         try:
             llm = self._load_model()
             context_str = self.format_context(retrieved_chunks)
+            gen_tokens = min(settings.max_tokens, 256)
+            stop_tokens = ["<|im_end|>", "<|endoftext|>", "###"]
 
             if hasattr(llm, "create_chat_completion"):
                 # llama-cpp chat interface
@@ -214,8 +219,9 @@ class LocalGGUFGenerator(BaseGenerator):
                         {"role": "system", "content": ENTERPRISE_SYSTEM_PROMPT},
                         {"role": "user", "content": f"KONTEKS DOKUMEN:\n{context_str}\n\nPERTANYAAN PENGGUNA:\n{query}"},
                     ],
-                    max_tokens=settings.max_tokens,
+                    max_tokens=gen_tokens,
                     temperature=settings.temperature,
+                    stop=stop_tokens,
                 )
                 return resp["choices"][0]["message"]["content"].strip()
             else:
@@ -225,7 +231,7 @@ class LocalGGUFGenerator(BaseGenerator):
                     f"### USER:\nKONTEKS DOKUMEN:\n{context_str}\n\nPERTANYAAN PENGGUNA:\n{query}\n\n"
                     f"### ASSISTANT:\n"
                 )
-                return llm(prompt, max_new_tokens=settings.max_tokens).strip()
+                return llm(prompt, max_new_tokens=gen_tokens).strip()
         except Exception as e:
             return (
                 f"Error eksekusi GGUF: {e}. "
