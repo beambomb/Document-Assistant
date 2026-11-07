@@ -76,11 +76,14 @@ st.markdown(
         color: var(--text) !important;
     }
 
-    /* Container width & vertical breathing room */
-    .block-container {
+    /* Container width & vertical breathing room with EQUAL EDGES */
+    .main .block-container {
         padding-top: 1.5rem !important;
-        padding-bottom: 6rem !important;
-        max-width: 860px !important;
+        padding-bottom: 5.5rem !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+        max-width: 820px !important;
+        margin: 0 auto !important;
     }
 
     /* Clean Pill Tabs (Zero red lines) */
@@ -133,83 +136,84 @@ st.markdown(
         transform: translateY(-1px) !important;
     }
 
-    /* Conversational Thread Layout */
-    .chat-thread {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-        margin-top: 1rem;
-        margin-bottom: 2rem;
+    /* Native Bilateral Chat Layout with Equal Edges */
+    div[data-testid="stChatMessage"] {
+        padding: 0.85rem 0 !important;
+        gap: 0.85rem !important;
+        border: none !important;
+        background: transparent !important;
+        width: 100% !important;
     }
 
-    /* User Message - Aligned to the RIGHT */
-    .msg-row-user {
-        display: flex;
-        justify-content: flex-end;
-        align-items: flex-start;
-        gap: 10px;
-        margin-left: 15%;
+    /* User Message: Aligned to the RIGHT with Terracotta Tint */
+    div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]),
+    div[data-testid="stChatMessage"][aria-label*="user"] {
+        flex-direction: row-reverse !important;
+        margin-left: auto !important;
+        margin-right: 0 !important;
+        max-width: 80% !important;
     }
-    .msg-bubble-user {
-        background: var(--surface-user);
-        border: 1px solid var(--border);
-        border-radius: 18px 4px 18px 18px;
-        padding: 12px 18px;
-        color: var(--text);
-        font-size: 0.94rem;
-        line-height: 1.55;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    }
-    .msg-avatar-user {
-        font-size: 1.25rem;
-        line-height: 1;
-        padding-top: 2px;
+    div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) div[data-testid="stChatMessageContent"],
+    div[data-testid="stChatMessage"][aria-label*="user"] div[data-testid="stChatMessageContent"] {
+        background: var(--surface-user) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 16px 4px 16px 16px !important;
+        padding: 10px 16px !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2) !important;
+        text-align: left !important;
+        color: var(--text) !important;
     }
 
-    /* Assistant Message - Aligned to the LEFT */
-    .msg-row-assistant {
-        display: flex;
-        justify-content: flex-start;
-        align-items: flex-start;
-        gap: 12px;
-        margin-right: 5%;
+    /* Assistant Message: Aligned to the LEFT with Clean Typography */
+    div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]),
+    div[data-testid="stChatMessage"][aria-label*="assistant"] {
+        flex-direction: row !important;
+        margin-right: auto !important;
+        margin-left: 0 !important;
+        max-width: 100% !important;
     }
-    .msg-avatar-assistant {
-        font-size: 1.35rem;
-        line-height: 1;
-        padding-top: 2px;
+    div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) div[data-testid="stChatMessageContent"],
+    div[data-testid="stChatMessage"][aria-label*="assistant"] div[data-testid="stChatMessageContent"] {
+        background: transparent !important;
+        border: none !important;
+        padding: 2px 0 !important;
+        color: var(--text) !important;
+        line-height: 1.65 !important;
     }
-    .msg-bubble-assistant {
-        flex: 1;
-        color: var(--text);
-        font-size: 0.95rem;
-        line-height: 1.65;
+
+    /* Avatar styling */
+    div[data-testid="stChatMessageAvatarUser"],
+    div[data-testid="stChatMessageAvatarAssistant"] {
+        background: transparent !important;
+        border: none !important;
+        font-size: 1.35rem !important;
+        margin-top: 2px !important;
     }
 
     /* Citations */
     .citation-tag {
         display: inline-flex;
         align-items: center;
-        background: rgba(217, 119, 87, 0.1);
-        border: 1px solid rgba(217, 119, 87, 0.25);
+        background: rgba(217, 119, 87, 0.12);
+        border: 1px solid rgba(217, 119, 87, 0.28);
         color: #E28668;
         font-family: 'JetBrains Mono', monospace;
-        font-size: 0.78rem;
+        font-size: 0.76rem;
         padding: 2px 8px;
-        border-radius: 5px;
+        border-radius: 4px;
         margin-right: 6px;
-        margin-top: 6px;
+        margin-top: 4px;
     }
 
     /* Refusal Callout Box */
     .abstain-box {
         background: var(--surface);
         border-left: 3px solid var(--terracotta);
-        padding: 12px 16px;
+        padding: 10px 14px;
         border-radius: 0 8px 8px 0;
         font-size: 0.92rem;
         color: var(--text);
-        margin: 6px 0;
+        margin: 4px 0;
     }
 
     /* Bottom Docked Chat Input (Streamlit native stBottom container) */
@@ -220,8 +224,10 @@ st.markdown(
         padding-bottom: 4px !important;
     }
     div[data-testid="stBottom"] > div {
-        max-width: 860px !important;
+        max-width: 820px !important;
         margin: 0 auto !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
         padding-top: 0 !important;
         padding-bottom: 2px !important;
     }
@@ -438,72 +444,41 @@ with tab_chat:
 
     # --- RENDER PERSISTENT CHAT HISTORY (User on RIGHT, Assistant on LEFT) ---
     if st.session_state.chat_history:
-        st.markdown('<div class="chat-thread">', unsafe_allow_html=True)
         for msg in st.session_state.chat_history:
             if msg["role"] == "user":
-                # User message: aligned to the RIGHT with 👤 avatar
-                clean_text = html.escape(msg["content"])
-                st.markdown(
-                    f"""
-                    <div class="msg-row-user">
-                        <div class="msg-bubble-user">
-                            <div style="font-size: 0.76rem; color: #D97757; font-weight: 600; margin-bottom: 4px;">[{msg.get('role_label', 'Pengguna')}]</div>
-                            {clean_text}
-                        </div>
-                        <div class="msg-avatar-user">👤</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                with st.chat_message("user", avatar="👤"):
+                    role_tag = msg.get("role_label", "Pengguna")
+                    st.markdown(
+                        f"<div style='font-size: 0.72rem; color: #D97757; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;'>{role_tag}</div>",
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown(msg["content"])
             else:
-                # Assistant message: aligned to the LEFT with 🤖 avatar
-                if msg.get("abstained"):
-                    refusal_escaped = html.escape(msg.get("content", ""))
-                    st.markdown(
-                        f"""
-                        <div class="msg-row-assistant">
-                            <div class="msg-avatar-assistant">🤖</div>
-                            <div class="msg-bubble-assistant">
-                                <div class="abstain-box">{refusal_escaped}</div>
-                                <div style="font-size: 0.78rem; color: #8E8980; margin-top: 4px;">
-                                    Latensi: {msg.get('latency_ms', 0):.1f} ms &middot; Skor: {msg.get('score', 0):.3f} &middot; Status: Ditolak
-                                </div>
-                            </div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                else:
-                    answer_text = msg.get("content", "")
-                    citations = msg.get("citations", [])
-
-                    citation_pills = ""
-                    if citations:
-                        citation_pills = '<div style="margin-top: 8px;">'
-                        for cit in citations:
-                            citation_pills += f'<span class="citation-tag">{cit["doc_id"]} &middot; {cit["section"]} (Hal. {cit["page"]})</span>'
-                        citation_pills += '</div>'
-
-                    st.markdown(
-                        f"""
-                        <div class="msg-row-assistant">
-                            <div class="msg-avatar-assistant">🤖</div>
-                            <div class="msg-bubble-assistant">
-                                <div>{answer_text}</div>
-                                {citation_pills}
-                                <div style="font-size: 0.78rem; color: #8E8980; margin-top: 6px;">
-                                    Latensi: {msg.get('latency_ms', 0):.1f} ms &middot; Keyakinan: {msg.get('score', 0):.3f}
-                                </div>
-                            </div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-        st.markdown('</div>', unsafe_allow_html=True)
+                with st.chat_message("assistant", avatar="🤖"):
+                    if msg.get("abstained"):
+                        st.markdown(
+                            f"<div class='abstain-box'>{html.escape(msg.get('content', ''))}</div>",
+                            unsafe_allow_html=True,
+                        )
+                        st.caption(
+                            f"Latensi: {msg.get('latency_ms', 0):.1f} ms &middot; Keyakinan: {msg.get('score', 0):.3f} &middot; Status: Ditolak"
+                        )
+                    else:
+                        st.markdown(msg.get("content", ""))
+                        citations = msg.get("citations", [])
+                        if citations:
+                            pills = "".join([
+                                f"<span class='citation-tag'>{c['doc_id']} &middot; {c['section']} (Hal. {c['page']})</span>"
+                                for c in citations
+                            ])
+                            st.markdown(f"<div style='margin-top: 6px;'>{pills}</div>", unsafe_allow_html=True)
+                        st.caption(
+                            f"Latensi: {msg.get('latency_ms', 0):.1f} ms &middot; Keyakinan: {msg.get('score', 0):.3f}"
+                        )
     else:
         st.markdown(
             """
-            <div style="padding: 2.5rem 0; text-align: center; color: #8E8980; font-size: 0.9rem;">
+            <div style="padding: 3rem 0; text-align: center; color: #8E8980; font-size: 0.9rem;">
                 Belum ada percakapan. Ketik pertanyaan di bawah atau pilih pertanyaan uji cepat di atas.
             </div>
             """,

@@ -199,23 +199,22 @@ class LocalGGUFGenerator(BaseGenerator):
             llm = self._load_model()
             context_str = self.format_context(retrieved_chunks)
             gen_tokens = min(settings.max_tokens, 256)
-            stop_tokens = ["<|im_end|>", "<|endoftext|>", "###"]
+            stop_tokens = ["<|im_end|>", "<|im_start|>", "<|endoftext|>", "###", "\n--- DOKUMEN", "\nKONTEKS:"]
 
             resp = llm.create_chat_completion(
                 messages=[
                     {"role": "system", "content": ENTERPRISE_SYSTEM_PROMPT},
-                    {"role": "user", "content": f"KONTEKS DOKUMEN:\n{context_str}\n\nPERTANYAAN PENGGUNA:\n{query}"},
+                    {"role": "user", "content": f"KONTEKS DOKUMEN:\n{context_str}\n\nPERTANYAAN PENGGUNA:\n{query}\n\nJAWABAN RESMI (singkat, padat, berdasar dokumen di atas beserta sitasi [Doc: <ID>, Hal: <Halaman>]):"},
                 ],
                 max_tokens=gen_tokens,
                 temperature=settings.temperature,
                 stop=stop_tokens,
             )
-            return resp["choices"][0]["message"]["content"].strip()
+            raw_answer = resp["choices"][0]["message"]["content"].strip()
+            if raw_answer.startswith("JAWABAN RESMI:") or raw_answer.startswith("Jawaban:"):
+                raw_answer = raw_answer.split(":", 1)[1].strip()
+            return raw_answer
         except Exception as e:
-            return (
-                f"Error eksekusi GGUF: {e}. "
-                f"Gunakan fallback: {MockGenerator().generate(query, retrieved_chunks, user_roles)}"
-            )
             return (
                 f"Error eksekusi GGUF: {e}. "
                 f"Gunakan fallback: {MockGenerator().generate(query, retrieved_chunks, user_roles)}"
