@@ -211,42 +211,32 @@ st.markdown(
         margin: 6px 0;
     }
 
-    /* Floating Chat Input at the very BOTTOM */
+    /* Bottom Chat Input (Let Streamlit handle full width & bottom positioning naturally) */
     div[data-testid="stChatInput"] {
-        background: transparent !important;
-        position: fixed !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        padding-bottom: 1.25rem !important;
-        padding-top: 0.5rem !important;
-        z-index: 100 !important;
-        backdrop-filter: blur(8px) !important;
+        padding-bottom: 1.5rem !important;
     }
     div[data-testid="stChatInput"] > div {
-        max-width: 860px !important;
-        margin: 0 auto !important;
         background: var(--surface) !important;
         border: 1px solid var(--border) !important;
-        border-radius: 20px !important;
-        padding: 4px 8px !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
-        transition: all 0.2s ease !important;
+        border-radius: 18px !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
     }
     div[data-testid="stChatInput"] > div:focus-within {
         border-color: var(--terracotta) !important;
         box-shadow: 0 0 0 2px rgba(217, 119, 87, 0.2) !important;
     }
     div[data-testid="stChatInput"] textarea {
-        font-size: 0.92rem !important;
+        font-size: 0.94rem !important;
         color: var(--text) !important;
     }
     div[data-testid="stChatInput"] button {
         background: var(--terracotta) !important;
         color: white !important;
         border-radius: 50% !important;
-        width: 30px !important;
-        height: 30px !important;
+    }
+    div[data-testid="stChatInput"] button:hover {
+        background: var(--terracotta-hover) !important;
     }
 
     /* Sidebar Styling */
