@@ -94,6 +94,38 @@ st.markdown(
         margin: 0 auto !important;
     }
 
+    /* Segmented Control Pill Navigation */
+    div[data-testid="stSegmentedControl"] {
+        margin-bottom: 1.75rem !important;
+    }
+    div[data-testid="stSegmentedControl"] > div {
+        background: var(--surface) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 9999px !important;
+        padding: 4px !important;
+        gap: 4px !important;
+    }
+    div[data-testid="stSegmentedControl"] button {
+        background: transparent !important;
+        border: none !important;
+        border-radius: 9999px !important;
+        padding: 6px 18px !important;
+        color: var(--text-muted) !important;
+        font-size: 0.88rem !important;
+        font-weight: 500 !important;
+        transition: all 0.15s ease !important;
+    }
+    div[data-testid="stSegmentedControl"] button:hover {
+        color: var(--text) !important;
+        background: rgba(255, 255, 255, 0.04) !important;
+    }
+    div[data-testid="stSegmentedControl"] button[aria-checked="true"] {
+        background: #363431 !important;
+        color: var(--text) !important;
+        font-weight: 600 !important;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
+    }
+
     /* Clean Pill Tabs (Zero clipping, zero underlines) */
     div[data-testid="stTabs"] div[role="tablist"],
     div[data-baseweb="tab-list"] {
@@ -428,126 +460,7 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-# --- MAIN WORKSPACE TABS ---
-quick_query = None
-tab_chat, tab_eval, tab_corpus = st.tabs([
-    "Percakapan",
-    "Benchmark",
-    "Dokumen",
-])
-
-with tab_chat:
-    # Clean, Minimalist Welcome Header
-    st.markdown(
-        """
-        <div style="margin-bottom: 1.5rem;">
-            <h1 style="font-size: 2.1rem; margin: 0 0 6px 0;">PT Majelis Debu Bintang</h1>
-            <div style="color: #8E8980; font-size: 0.95rem;">
-                Asisten dokumen resmi berbasis peran (RBAC) dengan sitasi terverifikasi.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # Sleek Horizontal Prompt Pills
-    p1, p2, p3, p4 = st.columns(4)
-
-    if p1.button("Sandi Laptop IT"):
-        quick_query = "Berapa panjang minimal kata sandi laptop dan seberapa sering wajib diperbarui?"
-    if p2.button("Hak Cuti Tahunan"):
-        quick_query = "Berapa hari hak cuti tahunan dan bagaimana aturan cuti melahirkan?"
-    if p3.button("Uji ACL (Gaji)"):
-        quick_query = "Berapa nominal gaji pokok bulanan dan bonus tahunan CEO dan Direksi?"
-    if p4.button("Uji Abstention"):
-        quick_query = "Bagaimana resep dan bumbu halus memasak rendang daging sapi Padang?"
-
-    # --- RENDER PERSISTENT CHAT HISTORY (User on RIGHT, Assistant on LEFT) ---
-    if st.session_state.chat_history:
-        for msg in st.session_state.chat_history:
-            if msg["role"] == "user":
-                with st.chat_message("user", avatar="👤"):
-                    role_tag = msg.get("role_label", "Pengguna")
-                    st.markdown(
-                        f"<div style='font-size: 0.72rem; color: #D97757; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;'>{role_tag}</div>",
-                        unsafe_allow_html=True,
-                    )
-                    st.markdown(msg["content"])
-            else:
-                with st.chat_message("assistant", avatar="🤖"):
-                    if msg.get("abstained"):
-                        st.markdown(
-                            f"<div class='abstain-box'>{html.escape(msg.get('content', ''))}</div>",
-                            unsafe_allow_html=True,
-                        )
-                        st.caption(
-                            f"Latensi: {msg.get('latency_ms', 0):.1f} ms &middot; Keyakinan: {msg.get('score', 0):.3f} &middot; Status: Ditolak"
-                        )
-                    else:
-                        st.markdown(msg.get("content", ""))
-                        citations = msg.get("citations", [])
-                        if citations:
-                            pills = "".join([
-                                f"<span class='citation-tag'>{c['doc_id']} &middot; {c['section']} (Hal. {c['page']})</span>"
-                                for c in citations
-                            ])
-                            st.markdown(f"<div style='margin-top: 6px;'>{pills}</div>", unsafe_allow_html=True)
-                        st.caption(
-                            f"Latensi: {msg.get('latency_ms', 0):.1f} ms &middot; Keyakinan: {msg.get('score', 0):.3f}"
-                        )
-    else:
-        st.markdown(
-            """
-            <div style="padding: 3rem 0; text-align: center; color: #8E8980; font-size: 0.9rem;">
-                Belum ada percakapan. Ketik pertanyaan di bawah atau pilih pertanyaan uji cepat di atas.
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-with tab_eval:
-    st.markdown('<h2 style="font-size: 1.6rem; margin-bottom: 2px;">Evaluasi & Benchmark</h2>', unsafe_allow_html=True)
-    st.caption("Uji kuantitatif Information Retrieval, Keamanan Hak Akses (ACL), dan Abstention.")
-
-    if st.button("Jalankan Evaluasi Ulang"):
-        with st.spinner("Menjalankan evaluasi kuantitatif..."):
-            harness = EvaluationHarness(dataset_name="id_enterprise", use_mock_embeddings=True)
-            results = harness.run_ablation()
-            EvaluationReporter.save_report(
-                rows=results,
-                output_md_path=Path("reports/ablation_results.md"),
-                output_csv_path=Path("reports/ablation_results.csv"),
-            )
-            st.success("Evaluasi selesai.")
-
-    # Render benchmark table directly and prominently on screen
-    csv_file = Path("reports/ablation_results.csv")
-    if csv_file.exists():
-        try:
-            df = pd.read_csv(csv_file)
-            display_df = pd.DataFrame({
-                "Konfigurasi": df["mode"],
-                "Recall@1": df["recall_at_1"].map(lambda x: f"{x*100:.1f}%"),
-                "Recall@3": df["recall_at_3"].map(lambda x: f"{x*100:.1f}%"),
-                "Recall@5": df["recall_at_5"].map(lambda x: f"{x*100:.1f}%"),
-                "MRR": df["mrr"].map(lambda x: f"{x:.3f}"),
-                "nDCG@5": df["ndcg_at_5"].map(lambda x: f"{x:.3f}"),
-                "Kebocoran ACL": df["leakage_rate_pct"].map(lambda x: f"{x:.2f}%"),
-                "Penolakan Jebakan": df["trap_rejection_pct"].map(lambda x: f"{x:.1f}%"),
-                "Latensi": df["latency_ms"].map(lambda x: f"{x:.1f} ms"),
-            })
-            st.write("")
-            st.dataframe(display_df, use_container_width=True, hide_index=True)
-        except Exception:
-            pass
-
-    # Narrative analysis in clean quiet expander
-    report_file = Path("reports/ablation_results.md")
-    if report_file.exists():
-        with st.expander("Ringkasan Metrik & Analisis Temuan"):
-            with open(report_file, "r", encoding="utf-8") as f:
-                st.markdown(f.read())
-
+# --- MODAL: TAMBAH DOKUMEN RESMI ---
 @st.dialog("Tambah Dokumen Resmi")
 def modal_tambah_dokumen():
     st.caption("Dokumen baru akan otomatis dipecah menjadi chunks dan diindeks secara live ke dalam BM25 & Dense Vector Index.")
@@ -619,7 +532,182 @@ def modal_tambah_dokumen():
             st.rerun()
 
 
-with tab_corpus:
+# --- MAIN WORKSPACE PILL NAVIGATION ---
+quick_query = None
+active_tab = st.segmented_control(
+    "Navigasi",
+    options=["Percakapan", "Benchmark", "Dokumen"],
+    default="Percakapan",
+    label_visibility="collapsed",
+)
+
+if active_tab == "Percakapan":
+    # Clean, Minimalist Welcome Header
+    st.markdown(
+        """
+        <div style="margin-bottom: 1.5rem;">
+            <h1 style="font-size: 2.1rem; margin: 0 0 6px 0;">PT Majelis Debu Bintang</h1>
+            <div style="color: #8E8980; font-size: 0.95rem;">
+                Asisten dokumen resmi berbasis peran (RBAC) dengan sitasi terverifikasi.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Sleek Horizontal Prompt Pills
+    p1, p2, p3, p4 = st.columns(4)
+
+    if p1.button("Sandi Laptop IT"):
+        quick_query = "Berapa panjang minimal kata sandi laptop dan seberapa sering wajib diperbarui?"
+    if p2.button("Hak Cuti Tahunan"):
+        quick_query = "Berapa hari hak cuti tahunan dan bagaimana aturan cuti melahirkan?"
+    if p3.button("Uji ACL (Gaji)"):
+        quick_query = "Berapa nominal gaji pokok bulanan dan bonus tahunan CEO dan Direksi?"
+    if p4.button("Uji Abstention"):
+        quick_query = "Bagaimana resep dan bumbu halus memasak rendang daging sapi Padang?"
+
+    # --- RENDER PERSISTENT CHAT HISTORY (User on RIGHT, Assistant on LEFT) ---
+    if st.session_state.chat_history:
+        for msg in st.session_state.chat_history:
+            if msg["role"] == "user":
+                with st.chat_message("user", avatar="👤"):
+                    role_tag = msg.get("role_label", "Pengguna")
+                    st.markdown(
+                        f"<div style='font-size: 0.72rem; color: #D97757; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;'>{role_tag}</div>",
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown(msg["content"])
+            else:
+                with st.chat_message("assistant", avatar="🤖"):
+                    if msg.get("abstained"):
+                        st.markdown(
+                            f"<div class='abstain-box'>{html.escape(msg.get('content', ''))}</div>",
+                            unsafe_allow_html=True,
+                        )
+                        st.caption(
+                            f"Latensi: {msg.get('latency_ms', 0):.1f} ms &middot; Keyakinan: {msg.get('score', 0):.3f} &middot; Status: Ditolak"
+                        )
+                    else:
+                        st.markdown(msg.get("content", ""))
+                        citations = msg.get("citations", [])
+                        if citations:
+                            pills = "".join([
+                                f"<span class='citation-tag'>{c['doc_id']} &middot; {c['section']} (Hal. {c['page']})</span>"
+                                for c in citations
+                            ])
+                            st.markdown(f"<div style='margin-top: 6px;'>{pills}</div>", unsafe_allow_html=True)
+                        st.caption(
+                            f"Latensi: {msg.get('latency_ms', 0):.1f} ms &middot; Keyakinan: {msg.get('score', 0):.3f}"
+                        )
+    else:
+        st.markdown(
+            """
+            <div style="padding: 3rem 0; text-align: center; color: #8E8980; font-size: 0.9rem;">
+                Belum ada percakapan. Ketik pertanyaan di bawah atau pilih pertanyaan uji cepat di atas.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    # --- VIEWPORT-LOCKED BOTTOM CHAT INPUT (ONLY ON PERCAKAPAN TAB) ---
+    query_input = st.chat_input("Tanyakan sesuatu tentang dokumen organisasi...")
+    active_query = quick_query or query_input
+
+    if active_query:
+        # Append User Message immediately to session state
+        st.session_state.chat_history.append({
+            "role": "user",
+            "content": active_query,
+            "role_label": role_options[selected_role],
+        })
+
+        user = UserContext(user_id="user_active", roles=[selected_role])
+        t0 = time.perf_counter()
+
+        # Step 1: Hybrid Retrieval with ACL pre-filtering
+        fused = retriever.search(active_query, user, top_k=settings.top_k_fused)
+
+        # Step 2: Cross-Encoder Reranking
+        reranked = reranker.rerank(active_query, fused, top_k=settings.top_k_final)
+
+        # Step 3: Confidence Gating
+        should_abstain, refusal_reason, conf_score = gate.evaluate(reranked)
+
+        latency_ms = (time.perf_counter() - t0) * 1000
+
+        if should_abstain:
+            st.session_state.chat_history.append({
+                "role": "assistant",
+                "content": refusal_reason,
+                "abstained": True,
+                "score": conf_score,
+                "latency_ms": latency_ms,
+            })
+        else:
+            answer = generator.generate(active_query, reranked, [selected_role])
+            citations, precision, _ = verifier.extract_and_verify(answer, reranked)
+
+            cit_dicts = [
+                {"doc_id": c.doc_id, "section": c.section, "page": c.page}
+                for c in citations
+            ]
+
+            st.session_state.chat_history.append({
+                "role": "assistant",
+                "content": answer,
+                "abstained": False,
+                "citations": cit_dicts,
+                "score": conf_score,
+                "latency_ms": latency_ms,
+            })
+
+        st.rerun()
+
+elif active_tab == "Benchmark":
+    st.markdown('<h2 style="font-size: 1.6rem; margin-bottom: 2px;">Evaluasi & Benchmark</h2>', unsafe_allow_html=True)
+    st.caption("Uji kuantitatif Information Retrieval, Keamanan Hak Akses (ACL), dan Abstention.")
+
+    if st.button("Jalankan Evaluasi Ulang"):
+        with st.spinner("Menjalankan evaluasi kuantitatif..."):
+            harness = EvaluationHarness(dataset_name="id_enterprise", use_mock_embeddings=True)
+            results = harness.run_ablation()
+            EvaluationReporter.save_report(
+                rows=results,
+                output_md_path=Path("reports/ablation_results.md"),
+                output_csv_path=Path("reports/ablation_results.csv"),
+            )
+            st.success("Evaluasi selesai.")
+
+    # Render benchmark table directly and prominently on screen
+    csv_file = Path("reports/ablation_results.csv")
+    if csv_file.exists():
+        try:
+            df = pd.read_csv(csv_file)
+            display_df = pd.DataFrame({
+                "Konfigurasi": df["mode"],
+                "Recall@1": df["recall_at_1"].map(lambda x: f"{x*100:.1f}%"),
+                "Recall@3": df["recall_at_3"].map(lambda x: f"{x*100:.1f}%"),
+                "Recall@5": df["recall_at_5"].map(lambda x: f"{x*100:.1f}%"),
+                "MRR": df["mrr"].map(lambda x: f"{x:.3f}"),
+                "nDCG@5": df["ndcg_at_5"].map(lambda x: f"{x:.3f}"),
+                "Kebocoran ACL": df["leakage_rate_pct"].map(lambda x: f"{x:.2f}%"),
+                "Penolakan Jebakan": df["trap_rejection_pct"].map(lambda x: f"{x:.1f}%"),
+                "Latensi": df["latency_ms"].map(lambda x: f"{x:.1f} ms"),
+            })
+            st.write("")
+            st.dataframe(display_df, use_container_width=True, hide_index=True)
+        except Exception:
+            pass
+
+    # Narrative analysis in clean quiet expander
+    report_file = Path("reports/ablation_results.md")
+    if report_file.exists():
+        with st.expander("Ringkasan Metrik & Analisis Temuan"):
+            with open(report_file, "r", encoding="utf-8") as f:
+                st.markdown(f.read())
+
+elif active_tab == "Dokumen":
     head_col, action_col = st.columns([3, 1], vertical_alignment="center")
     with head_col:
         st.markdown('<h2 style="font-size: 1.6rem; margin: 0 0 4px 0;">Dokumen Resmi</h2>', unsafe_allow_html=True)
@@ -643,57 +731,4 @@ with tab_corpus:
                 st.markdown(d.content)
         st.write("")
 
-# --- VIEWPORT-LOCKED BOTTOM CHAT INPUT (ROOT CONTAINER) ---
-query_input = st.chat_input("Tanyakan sesuatu tentang dokumen organisasi...")
-active_query = quick_query or query_input
-
-if active_query:
-    # Append User Message immediately to session state
-    st.session_state.chat_history.append({
-        "role": "user",
-        "content": active_query,
-        "role_label": role_options[selected_role],
-    })
-
-    user = UserContext(user_id="user_active", roles=[selected_role])
-    t0 = time.perf_counter()
-
-    # Step 1: Hybrid Retrieval with ACL pre-filtering
-    fused = retriever.search(active_query, user, top_k=settings.top_k_fused)
-
-    # Step 2: Cross-Encoder Reranking
-    reranked = reranker.rerank(active_query, fused, top_k=settings.top_k_final)
-
-    # Step 3: Confidence Gating
-    should_abstain, refusal_reason, conf_score = gate.evaluate(reranked)
-
-    latency_ms = (time.perf_counter() - t0) * 1000
-
-    if should_abstain:
-        st.session_state.chat_history.append({
-            "role": "assistant",
-            "content": refusal_reason,
-            "abstained": True,
-            "score": conf_score,
-            "latency_ms": latency_ms,
-        })
-    else:
-        answer = generator.generate(active_query, reranked, [selected_role])
-        citations, precision, _ = verifier.extract_and_verify(answer, reranked)
-
-        cit_dicts = [
-            {"doc_id": c.doc_id, "section": c.section, "page": c.page}
-            for c in citations
-        ]
-
-        st.session_state.chat_history.append({
-            "role": "assistant",
-            "content": answer,
-            "abstained": False,
-            "citations": cit_dicts,
-            "score": conf_score,
-            "latency_ms": latency_ms,
-        })
-
-    st.rerun()
 
