@@ -86,7 +86,7 @@ st.markdown(
 
     /* Container width & vertical breathing room with EQUAL EDGES & NO TOP CLIPPING */
     .main .block-container {
-        padding-top: 4.75rem !important;
+        padding-top: 3.75rem !important;
         padding-bottom: 5.5rem !important;
         padding-left: 1.5rem !important;
         padding-right: 1.5rem !important;
@@ -96,7 +96,7 @@ st.markdown(
 
     /* Segmented Control Pill Navigation */
     div[data-testid="stSegmentedControl"] {
-        margin-bottom: 1.75rem !important;
+        margin-bottom: 1.15rem !important;
     }
     div[data-testid="stSegmentedControl"] > div {
         background: var(--surface) !important;
@@ -708,14 +708,11 @@ active_tab = st.segmented_control(
 )
 
 if active_tab == "Percakapan":
-    # Clean, Minimalist Welcome Header
+    # Minimalist Header (Subtitle removed for a clean, elevated layout)
     st.markdown(
         """
-        <div style="margin-bottom: 1.5rem;">
-            <h1 style="font-size: 2.1rem; margin: 0 0 6px 0;">PT Majelis Debu Bintang</h1>
-            <div style="color: #8E8980; font-size: 0.95rem;">
-                Asisten dokumen resmi berbasis peran (RBAC) dengan sitasi terverifikasi.
-            </div>
+        <div style="margin-bottom: 0.9rem;">
+            <h1 style="font-size: 2.1rem; margin: 0; line-height: 1.15;">PT Majelis Debu Bintang</h1>
         </div>
         """,
         unsafe_allow_html=True,
