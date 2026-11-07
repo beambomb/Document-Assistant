@@ -189,14 +189,5 @@ uvicorn api.app:app --reload --port 8000
 
 ---
 
-## 8. Enterprise Relevance (PT Dua Empat Tujuh Context)
-
-This architecture reflects the requirements of enterprise text analytics and search engineering firms such as PT Dua Empat Tujuh (Solusi 247):
-- **Deterministic Pre-Filtering**: Guarantees sensitive corporate data is excluded at the database retrieval level.
-- **Hybrid Lexical and Dense Search**: Combines exact code matching with contextual semantic search.
-- **Empirical Rigor**: Architectural choices are validated through quantitative metrics (Recall, nDCG, MRR, Faithfulness, Latency) within an automated CI/CD pipeline.
-
----
-
-## 9. License
+## 8. License
 Distributed under the MIT License. See `LICENSE` for details.
