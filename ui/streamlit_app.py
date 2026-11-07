@@ -170,8 +170,8 @@ st.markdown(
         border-bottom: none !important;
     }
 
-    /* Minimal Prompt Suggestion Pills */
-    div.stHorizontalBlock div[data-testid="stButton"] button {
+    /* Minimal Prompt Suggestion Pills (Scoped strictly to prompt-pills) */
+    div.prompt-pills div.stHorizontalBlock div[data-testid="stButton"] button {
         background: var(--surface) !important;
         border: 1px solid var(--border) !important;
         border-radius: 9999px !important;
@@ -181,11 +181,13 @@ st.markdown(
         padding: 5px 14px !important;
         transition: all 0.15s ease !important;
         white-space: nowrap !important;
+        box-shadow: none !important;
     }
-    div.stHorizontalBlock div[data-testid="stButton"] button:hover {
+    div.prompt-pills div.stHorizontalBlock div[data-testid="stButton"] button:hover {
         border-color: var(--terracotta) !important;
         color: var(--text) !important;
         transform: translateY(-1px) !important;
+        background: var(--surface) !important;
     }
 
     /* Native Bilateral Chat Layout with Equal Edges */
@@ -383,18 +385,33 @@ st.markdown(
         margin: 6px 0 !important;
     }
 
-    /* Action Buttons */
-    div[data-testid="stButton"] > button {
+    /* Action & Primary Buttons (Terracotta Orange) */
+    div[data-testid="stButton"] > button,
+    button[kind="primary"],
+    button[data-testid="stBaseButton-primary"],
+    div.stHorizontalBlock div[data-testid="stButton"] button[kind="primary"],
+    div.stHorizontalBlock div[data-testid="stButton"] button[data-testid="stBaseButton-primary"] {
         background: var(--terracotta) !important;
-        color: white !important;
+        background-color: var(--terracotta) !important;
+        color: #FFFFFF !important;
         border: none !important;
-        border-radius: 6px !important;
-        font-size: 0.85rem !important;
-        font-weight: 500 !important;
-        padding: 6px 16px !important;
+        border-radius: 8px !important;
+        font-size: 0.86rem !important;
+        font-weight: 600 !important;
+        padding: 7px 18px !important;
+        box-shadow: 0 1px 4px rgba(217, 119, 87, 0.28) !important;
+        transition: all 0.15s ease !important;
     }
-    div[data-testid="stButton"] > button:hover {
+    div[data-testid="stButton"] > button:hover,
+    button[kind="primary"]:hover,
+    button[data-testid="stBaseButton-primary"]:hover,
+    div.stHorizontalBlock div[data-testid="stButton"] button[kind="primary"]:hover,
+    div.stHorizontalBlock div[data-testid="stButton"] button[data-testid="stBaseButton-primary"]:hover {
         background: var(--terracotta-hover) !important;
+        background-color: var(--terracotta-hover) !important;
+        color: #FFFFFF !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(217, 119, 87, 0.45) !important;
     }
     </style>
     """,
@@ -633,7 +650,7 @@ def modal_tambah_dokumen():
         key="modal_content",
     )
 
-    if st.button("Simpan & Indeks Dokumen", use_container_width=True, key="modal_btn_save"):
+    if st.button("Simpan & Indeks Dokumen", type="primary", use_container_width=True, key="modal_btn_save"):
         if not new_doc_id or not new_title or not new_content.strip():
             st.error("Mohon lengkapi Nomor Dokumen, Judul Dokumen, dan Isi Konten.")
         else:
@@ -693,6 +710,7 @@ if active_tab == "Percakapan":
     )
 
     # Sleek Horizontal Prompt Pills
+    st.markdown('<div class="prompt-pills">', unsafe_allow_html=True)
     p1, p2, p3, p4 = st.columns(4)
 
     if p1.button("Sandi Laptop IT"):
@@ -703,6 +721,7 @@ if active_tab == "Percakapan":
         quick_query = "Berapa nominal gaji pokok bulanan dan bonus tahunan CEO dan Direksi?"
     if p4.button("Uji Abstention"):
         quick_query = "Bagaimana resep dan bumbu halus memasak rendang daging sapi Padang?"
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # --- RENDER PERSISTENT CHAT HISTORY (User on RIGHT, Assistant on LEFT) ---
     if st.session_state.chat_history:
@@ -829,7 +848,7 @@ elif active_tab == "Benchmark":
     st.markdown('<h2 style="font-size: 1.6rem; margin-bottom: 2px;">Evaluasi & Benchmark</h2>', unsafe_allow_html=True)
     st.caption("Uji kuantitatif Information Retrieval, Keamanan Hak Akses (ACL), dan Abstention.")
 
-    if st.button("Jalankan Evaluasi Ulang"):
+    if st.button("Jalankan Evaluasi Ulang", type="primary"):
         with st.spinner("Menjalankan evaluasi kuantitatif..."):
             harness = EvaluationHarness(dataset_name="id_enterprise", use_mock_embeddings=True)
             results = harness.run_ablation()
@@ -874,7 +893,7 @@ elif active_tab == "Dokumen":
         st.markdown('<h2 style="font-size: 1.6rem; margin: 0 0 4px 0;">Dokumen Resmi</h2>', unsafe_allow_html=True)
         st.caption("Daftar dokumen operasional terdaftar dalam sistem PT Majelis Debu Bintang:")
     with action_col:
-        if st.button("+ Dokumen Baru", use_container_width=True, key="btn_open_modal_doc"):
+        if st.button("+ Dokumen Baru", type="primary", use_container_width=True, key="btn_open_modal_doc"):
             modal_tambah_dokumen()
 
     st.markdown('<div style="margin-top: 1.25rem;"></div>', unsafe_allow_html=True)
