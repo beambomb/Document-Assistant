@@ -586,11 +586,11 @@ with st.sidebar:
         )
         max_tokens = st.slider(
             "Maksimal Token Jawaban",
-            min_value=100,
-            max_value=800,
-            value=350,
-            step=50,
-            help="Batas panjang jawaban AI",
+            min_value=80,
+            max_value=600,
+            value=180 if selected_provider == "gguf" else 350,
+            step=20,
+            help="Batas panjang jawaban AI. Nilai lebih kecil mempercepat respon di CPU.",
             key="slider_max_tokens",
         )
         if selected_provider == "gguf":
@@ -745,13 +745,20 @@ if active_tab == "Percakapan":
                 with st.chat_message("assistant", avatar="🤖"):
                     msg_model = msg.get("model", "")
                     model_str = f" &middot; {msg_model}" if msg_model else ""
+                    ret_ms = msg.get("retrieval_ms")
+                    gen_ms = msg.get("gen_ms")
+                    if ret_ms is not None and gen_ms is not None:
+                        latency_str = f"Latensi: {msg.get('latency_ms', 0):.0f} ms (Temu: {ret_ms:.1f} ms &middot; LLM: {gen_ms:.0f} ms)"
+                    else:
+                        latency_str = f"Latensi: {msg.get('latency_ms', 0):.1f} ms"
+
                     if msg.get("abstained"):
                         st.markdown(
                             f"<div class='abstain-box'>{html.escape(msg.get('content', ''))}</div>",
                             unsafe_allow_html=True,
                         )
                         st.caption(
-                            f"Latensi: {msg.get('latency_ms', 0):.1f} ms &middot; Keyakinan: {msg.get('score', 0):.3f} &middot; Status: Ditolak{model_str}"
+                            f"{latency_str} &middot; Keyakinan: {msg.get('score', 0):.3f} &middot; Status: Ditolak{model_str}"
                         )
                     else:
                         st.markdown(msg.get("content", ""))
@@ -763,7 +770,7 @@ if active_tab == "Percakapan":
                             ])
                             st.markdown(f"<div style='margin-top: 6px;'>{pills}</div>", unsafe_allow_html=True)
                         st.caption(
-                            f"Latensi: {msg.get('latency_ms', 0):.1f} ms &middot; Keyakinan: {msg.get('score', 0):.3f}{model_str}"
+                            f"{latency_str} &middot; Keyakinan: {msg.get('score', 0):.3f}{model_str}"
                         )
     else:
         st.markdown(
@@ -799,15 +806,18 @@ if active_tab == "Percakapan":
         # Step 3: Confidence Gating
         should_abstain, refusal_reason, conf_score = gate.evaluate(reranked)
 
-        latency_ms = (time.perf_counter() - t0) * 1000
+        retrieval_ms = (time.perf_counter() - t0) * 1000
 
         if should_abstain:
+            total_ms = (time.perf_counter() - t0) * 1000
             st.session_state.chat_history.append({
                 "role": "assistant",
                 "content": refusal_reason,
                 "abstained": True,
                 "score": conf_score,
-                "latency_ms": latency_ms,
+                "latency_ms": total_ms,
+                "retrieval_ms": retrieval_ms,
+                "gen_ms": 0.0,
                 "model": "Abstain (Gate)",
             })
         else:
@@ -831,7 +841,12 @@ if active_tab == "Percakapan":
                 )
                 chosen_tag = cloud_models.get(active_cloud_model, active_cloud_model.split("/")[-1])
 
-            answer = active_gen.generate(active_query, reranked, [selected_role])
+            t_gen = time.perf_counter()
+            with st.spinner("Menyusun jawaban resmi..."):
+                answer = active_gen.generate(active_query, reranked, [selected_role])
+            gen_ms = (time.perf_counter() - t_gen) * 1000
+            total_ms = (time.perf_counter() - t0) * 1000
+
             citations, precision, _ = verifier.extract_and_verify(answer, reranked)
 
             cit_dicts = [
@@ -845,7 +860,9 @@ if active_tab == "Percakapan":
                 "abstained": False,
                 "citations": cit_dicts,
                 "score": conf_score,
-                "latency_ms": latency_ms,
+                "latency_ms": total_ms,
+                "retrieval_ms": retrieval_ms,
+                "gen_ms": gen_ms,
                 "model": chosen_tag,
             })
 

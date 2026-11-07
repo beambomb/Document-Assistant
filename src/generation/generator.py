@@ -167,6 +167,7 @@ class LocalGGUFGenerator(BaseGenerator):
                     model_path=str(self.model_path),
                     n_ctx=self.n_ctx,
                     n_threads=self.n_threads,
+                    n_batch=512,
                     verbose=False,
                 )
             except ImportError:
