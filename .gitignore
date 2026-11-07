@@ -1,0 +1,35 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environment variables
+.env
+*.env.local
+
+# Indices and embeddings cache
+data/indices/
+*.index
+*.faiss
+*.chroma
+
+# Downloaded HuggingFace cache
+models_cache/
+.cache/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Temporary / OS
+.DS_Store
+Thumbs.db
+*.log
+reports/*.tmp
