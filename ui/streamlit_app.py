@@ -170,9 +170,13 @@ st.markdown(
         border-bottom: none !important;
     }
 
-    /* Minimal Prompt Suggestion Pills (Scoped strictly to prompt-pills) */
-    div.prompt-pills div.stHorizontalBlock div[data-testid="stButton"] button {
+    /* Minimal Prompt Suggestion Pills (Secondary Buttons) */
+    button[kind="secondary"],
+    button[data-testid="stBaseButton-secondary"],
+    div[data-testid="stButton"] button[kind="secondary"],
+    div[data-testid="stButton"] button[data-testid="stBaseButton-secondary"] {
         background: var(--surface) !important;
+        background-color: var(--surface) !important;
         border: 1px solid var(--border) !important;
         border-radius: 9999px !important;
         color: var(--text-muted) !important;
@@ -183,11 +187,15 @@ st.markdown(
         white-space: nowrap !important;
         box-shadow: none !important;
     }
-    div.prompt-pills div.stHorizontalBlock div[data-testid="stButton"] button:hover {
+    button[kind="secondary"]:hover,
+    button[data-testid="stBaseButton-secondary"]:hover,
+    div[data-testid="stButton"] button[kind="secondary"]:hover,
+    div[data-testid="stButton"] button[data-testid="stBaseButton-secondary"]:hover {
         border-color: var(--terracotta) !important;
         color: var(--text) !important;
         transform: translateY(-1px) !important;
         background: var(--surface) !important;
+        background-color: var(--surface) !important;
     }
 
     /* Native Bilateral Chat Layout with Equal Edges */
@@ -386,9 +394,11 @@ st.markdown(
     }
 
     /* Action & Primary Buttons (Terracotta Orange) */
-    div[data-testid="stButton"] > button,
     button[kind="primary"],
     button[data-testid="stBaseButton-primary"],
+    button[data-testid*="primary"],
+    div.stButton button[kind="primary"],
+    div[data-testid="stButton"] button[kind="primary"],
     div.stHorizontalBlock div[data-testid="stButton"] button[kind="primary"],
     div.stHorizontalBlock div[data-testid="stButton"] button[data-testid="stBaseButton-primary"] {
         background: var(--terracotta) !important;
@@ -402,9 +412,11 @@ st.markdown(
         box-shadow: 0 1px 4px rgba(217, 119, 87, 0.28) !important;
         transition: all 0.15s ease !important;
     }
-    div[data-testid="stButton"] > button:hover,
     button[kind="primary"]:hover,
     button[data-testid="stBaseButton-primary"]:hover,
+    button[data-testid*="primary"]:hover,
+    div.stButton button[kind="primary"]:hover,
+    div[data-testid="stButton"] button[kind="primary"]:hover,
     div.stHorizontalBlock div[data-testid="stButton"] button[kind="primary"]:hover,
     div.stHorizontalBlock div[data-testid="stButton"] button[data-testid="stBaseButton-primary"]:hover {
         background: var(--terracotta-hover) !important;
@@ -471,7 +483,7 @@ with st.sidebar:
         label_visibility="collapsed",
     )
 
-    if st.button("Bersihkan Obrolan", use_container_width=True):
+    if st.button("Bersihkan Obrolan", type="primary", use_container_width=True):
         st.session_state.chat_history = []
         st.rerun()
 
@@ -710,18 +722,16 @@ if active_tab == "Percakapan":
     )
 
     # Sleek Horizontal Prompt Pills
-    st.markdown('<div class="prompt-pills">', unsafe_allow_html=True)
     p1, p2, p3, p4 = st.columns(4)
 
-    if p1.button("Sandi Laptop IT"):
+    if p1.button("Sandi Laptop IT", type="secondary"):
         quick_query = "Berapa panjang minimal kata sandi laptop dan seberapa sering wajib diperbarui?"
-    if p2.button("Hak Cuti Tahunan"):
+    if p2.button("Hak Cuti Tahunan", type="secondary"):
         quick_query = "Berapa hari hak cuti tahunan dan bagaimana aturan cuti melahirkan?"
-    if p3.button("Uji ACL (Gaji)"):
+    if p3.button("Uji ACL (Gaji)", type="secondary"):
         quick_query = "Berapa nominal gaji pokok bulanan dan bonus tahunan CEO dan Direksi?"
-    if p4.button("Uji Abstention"):
+    if p4.button("Uji Abstention", type="secondary"):
         quick_query = "Bagaimana resep dan bumbu halus memasak rendang daging sapi Padang?"
-    st.markdown('</div>', unsafe_allow_html=True)
 
     # --- RENDER PERSISTENT CHAT HISTORY (User on RIGHT, Assistant on LEFT) ---
     if st.session_state.chat_history:

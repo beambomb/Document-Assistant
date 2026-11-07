@@ -243,23 +243,33 @@ def get_generator(
     n_threads: Optional[int] = None,
     n_ctx: Optional[int] = None,
     repeat_penalty: Optional[float] = None,
+    *args,
+    **kwargs,
 ) -> BaseGenerator:
     """Factory creating configured generator instance."""
-    active = (provider or settings.llm_provider).lower().strip()
+    active = (provider or kwargs.get("provider") or settings.llm_provider).lower().strip()
+    active_model = model or kwargs.get("model")
+    active_key = api_key or kwargs.get("api_key")
+    active_temp = temperature if temperature is not None else kwargs.get("temperature")
+    active_tokens = max_tokens if max_tokens is not None else kwargs.get("max_tokens")
+    active_threads = n_threads if n_threads is not None else kwargs.get("n_threads")
+    active_ctx = n_ctx if n_ctx is not None else kwargs.get("n_ctx")
+    active_repeat = repeat_penalty if repeat_penalty is not None else kwargs.get("repeat_penalty")
+
     if active in ["gguf", "local"]:
         return LocalGGUFGenerator(
-            model_path=model,
-            n_ctx=n_ctx,
-            n_threads=n_threads,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            repeat_penalty=repeat_penalty,
+            model_path=active_model,
+            n_ctx=active_ctx,
+            n_threads=active_threads,
+            temperature=active_temp,
+            max_tokens=active_tokens,
+            repeat_penalty=active_repeat,
         )
     if active == "openrouter":
         return OpenRouterGenerator(
-            api_key=api_key,
-            model=model,
-            temperature=temperature,
-            max_tokens=max_tokens,
+            api_key=active_key,
+            model=active_model,
+            temperature=active_temp,
+            max_tokens=active_tokens,
         )
     return MockGenerator()
