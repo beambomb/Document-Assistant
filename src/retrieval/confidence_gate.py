@@ -21,27 +21,21 @@ class ConfidenceGate:
             refusal_reason (Optional[str])
             confidence_score (float)
         """
+        # Uniform refusal message to prevent oracle/side-channel leakage
+        UNIFORM_REFUSAL = "Maaf, informasi tidak ditemukan dalam dokumen resmi yang tersedia untuk akun Anda."
+
         # Case 1: Zero candidates passed ACL or index search
         if not candidates:
-            return (
-                True,
-                "Informasi tidak ditemukan dalam dokumen resmi yang dapat diakses oleh akun Anda.",
-                0.0,
-            )
+            return (True, UNIFORM_REFUSAL, 0.0)
 
         # Case 2: Examine top candidate score
         top_cand = candidates[0]
         # Prefer rerank_score if available, otherwise check hybrid_score
         score = top_cand.rerank_score if top_cand.rerank_score is not None else top_cand.hybrid_score
 
-        # Case 3: Score is below empirical confidence threshold
+        # Case 3: Score is below confidence threshold
         if score < self.threshold:
-            return (
-                True,
-                f"Tingkat keyakinan bukti dokumen rendah ({score:.2f} < {self.threshold:.2f}). "
-                "Pertanyaan berada di luar cakupan dokumen yang tersedia.",
-                score,
-            )
+            return (True, UNIFORM_REFUSAL, score)
 
         # Case 4: Evidence is grounded and passes gate
         return (False, None, score)

@@ -31,7 +31,7 @@ def test_confidence_gate_abstains_on_low_score():
     should_abstain, reason, score = gate.evaluate([candidate])
 
     assert should_abstain is True
-    assert "rendah" in reason
+    assert "tidak ditemukan" in reason
     assert score == 0.20
 
 
