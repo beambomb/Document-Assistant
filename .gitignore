@@ -13,6 +13,10 @@ env/
 .env
 *.env.local
 
+# Agent skills and configurations (Local only, do not commit)
+.agents/
+.agent/
+
 # Indices and embeddings cache
 data/indices/
 *.index
