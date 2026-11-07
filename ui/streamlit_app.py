@@ -76,9 +76,17 @@ st.markdown(
         color: var(--text) !important;
     }
 
-    /* Container width & vertical breathing room with EQUAL EDGES */
+    /* Streamlit Top Header Bar */
+    header[data-testid="stHeader"] {
+        background-color: var(--bg) !important;
+        border-bottom: 1px solid var(--border-subtle) !important;
+        height: 3rem !important;
+        z-index: 99 !important;
+    }
+
+    /* Container width & vertical breathing room with EQUAL EDGES & NO TOP CLIPPING */
     .main .block-container {
-        padding-top: 1.5rem !important;
+        padding-top: 4.75rem !important;
         padding-bottom: 5.5rem !important;
         padding-left: 1.5rem !important;
         padding-right: 1.5rem !important;
@@ -86,36 +94,48 @@ st.markdown(
         margin: 0 auto !important;
     }
 
-    /* Clean Pill Tabs (Zero red lines) */
-    div[data-baseweb="tab-highlight"], div[data-baseweb="tab-border"] {
-        display: none !important;
-    }
+    /* Clean Pill Tabs (Zero clipping, zero underlines) */
+    div[data-testid="stTabs"] div[role="tablist"],
     div[data-baseweb="tab-list"] {
         background: var(--surface) !important;
         border: 1px solid var(--border) !important;
         border-radius: 9999px !important;
-        padding: 3px !important;
-        gap: 2px !important;
-        margin-bottom: 1.5rem !important;
+        padding: 4px !important;
+        gap: 4px !important;
+        margin-bottom: 1.75rem !important;
         width: fit-content !important;
+        border-bottom: none !important;
     }
+    div[data-testid="stTabs"] div[role="tablist"]::after,
+    div[data-testid="stTabs"] hr,
+    div[data-baseweb="tab-highlight"], 
+    div[data-baseweb="tab-border"] {
+        display: none !important;
+    }
+    button[data-testid="stTab"],
     button[data-baseweb="tab"] {
         background: transparent !important;
         border: none !important;
         border-radius: 9999px !important;
-        padding: 6px 16px !important;
+        padding: 6px 18px !important;
         color: var(--text-muted) !important;
-        font-size: 0.85rem !important;
+        font-size: 0.88rem !important;
         font-weight: 500 !important;
+        height: auto !important;
         transition: all 0.15s ease !important;
     }
+    button[data-testid="stTab"]:hover,
     button[data-baseweb="tab"]:hover {
         color: var(--text) !important;
+        background: rgba(255, 255, 255, 0.04) !important;
     }
+    button[data-testid="stTab"][aria-selected="true"],
     button[data-baseweb="tab"][aria-selected="true"] {
         background: #363431 !important;
         color: var(--text) !important;
         font-weight: 600 !important;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
+        border-bottom: none !important;
     }
 
     /* Minimal Prompt Suggestion Pills */
