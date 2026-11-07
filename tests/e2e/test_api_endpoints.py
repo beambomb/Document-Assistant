@@ -1,7 +1,9 @@
 """End-to-End (E2E) tests for FastAPI endpoints."""
 
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from api.app import app
+from src.generation.generator import MockGenerator
 
 client = TestClient(app)
 
@@ -21,7 +23,8 @@ def test_e2e_valid_query_returns_answer_and_citation():
         "roles": ["employee"],
         "top_k": 3,
     }
-    response = client.post("/v1/query", json=payload)
+    with patch("api.app.generator", MockGenerator()):
+        response = client.post("/v1/query", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert data["abstained"] is False

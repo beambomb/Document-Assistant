@@ -32,7 +32,7 @@ def test_hybrid_retrieval_with_acl_and_reranking():
     fused_candidates = retriever.search(
         query="Berapa panjang minimal kata sandi laptop karyawan?",
         user=emp_user,
-        top_k=5,
+        top_k=settings.top_k_fused,
     )
     assert len(fused_candidates) > 0
 

@@ -181,9 +181,16 @@ with tab_eval:
         st.info("Laporan evaluasi belum di-generate. Klik tombol di atas untuk menjalankan.")
 
 with tab_corpus:
-    st.header("📁 Daftar Dokumen Korpus Perusahaan")
+    st.header("📁 Direktori Dokumen Perusahaan Berdasarkan Departemen")
+    # Group documents by department
+    dept_groups = {}
     for d in docs:
-        with st.expander(f"📄 [{d.doc_id}] {d.title} (Akses: {', '.join(d.access_roles)})"):
-            st.markdown(f"**Versi**: {d.version} | **Divisi**: {d.department} | **Tanggal Berlaku**: {d.effective_date}")
-            st.markdown("---")
-            st.markdown(d.content)
+        dept_groups.setdefault(d.department, []).append(d)
+
+    for dept_name, dept_docs in dept_groups.items():
+        st.subheader(f"🏢 Departemen: {dept_name}")
+        for d in dept_docs:
+            with st.expander(f"📄 [{d.doc_id}] {d.title} (Akses: {', '.join(d.access_roles)})"):
+                st.markdown(f"**Versi**: {d.version} | **Divisi**: {d.department} | **Tanggal Berlaku**: {d.effective_date}")
+                st.markdown("---")
+                st.markdown(d.content)

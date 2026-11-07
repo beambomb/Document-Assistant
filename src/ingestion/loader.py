@@ -35,11 +35,12 @@ class DocumentLoader:
         return doc, chunks
 
     def load_directory_markdown(self, dir_path: Path) -> Tuple[List[Document], List[Chunk]]:
-        """Loads and chunks all markdown files within a directory."""
+        """Loads and chunks all markdown files within a directory and its departmental subdirectories."""
         all_docs: List[Document] = []
         all_chunks: List[Chunk] = []
 
-        for md_file in sorted(dir_path.glob("*.md")):
+        # Recursively scan all departmental folders (hr/, it/, finance/, etc.)
+        for md_file in sorted(dir_path.rglob("*.md")):
             doc, chunks = self.load_markdown_file(md_file)
             all_docs.append(doc)
             all_chunks.extend(chunks)
