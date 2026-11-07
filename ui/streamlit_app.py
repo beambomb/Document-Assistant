@@ -698,6 +698,49 @@ def modal_tambah_dokumen():
             st.rerun()
 
 
+def render_chat_message(msg):
+    """Renders a single chat message bubble with role styling, citations, and latency."""
+    if msg["role"] == "user":
+        with st.chat_message("user", avatar="👤"):
+            role_tag = msg.get("role_label", "Pengguna")
+            st.markdown(
+                f"<div style='font-size: 0.72rem; color: #D97757; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;'>{role_tag}</div>",
+                unsafe_allow_html=True,
+            )
+            st.markdown(msg["content"])
+    else:
+        with st.chat_message("assistant", avatar="🤖"):
+            msg_model = msg.get("model", "")
+            model_str = f" &middot; Model: {msg_model}" if msg_model else ""
+            ret_ms = msg.get("retrieval_ms")
+            gen_ms = msg.get("gen_ms")
+            if ret_ms is not None and gen_ms is not None:
+                latency_str = f"Latensi: {msg.get('latency_ms', 0):.0f} ms (Temu: {ret_ms:.1f} ms &middot; LLM: {gen_ms:.0f} ms)"
+            else:
+                latency_str = f"Latensi: {msg.get('latency_ms', 0):.1f} ms"
+
+            if msg.get("abstained"):
+                st.markdown(
+                    f"<div class='abstain-box'>{html.escape(msg.get('content', ''))}</div>",
+                    unsafe_allow_html=True,
+                )
+                st.caption(
+                    f"{latency_str} &middot; Keyakinan: {msg.get('score', 0):.3f} &middot; Status: Ditolak{model_str}"
+                )
+            else:
+                st.markdown(msg.get("content", ""))
+                citations = msg.get("citations", [])
+                if citations:
+                    pills = "".join([
+                        f"<span class='citation-tag'>{c['doc_id']} &middot; {c['section']} (Hal. {c['page']})</span>"
+                        for c in citations
+                    ])
+                    st.markdown(f"<div style='margin-top: 6px;'>{pills}</div>", unsafe_allow_html=True)
+                st.caption(
+                    f"{latency_str} &middot; Keyakinan: {msg.get('score', 0):.3f}{model_str}"
+                )
+
+
 # --- MAIN WORKSPACE PILL NAVIGATION ---
 quick_query = None
 active_tab = st.segmented_control(
@@ -730,49 +773,15 @@ if active_tab == "Percakapan":
     if p4.button("Uji Abstention", type="secondary"):
         quick_query = "Bagaimana resep dan bumbu halus memasak rendang daging sapi Padang?"
 
-    # --- RENDER PERSISTENT CHAT HISTORY (User on RIGHT, Assistant on LEFT) ---
+    # Check for incoming chat input first
+    query_input = st.chat_input("Tanyakan sesuatu tentang dokumen organisasi...")
+    active_query = quick_query or query_input
+
+    # 1. Render historical chat messages (or clean empty state if no history and no active query)
     if st.session_state.chat_history:
         for msg in st.session_state.chat_history:
-            if msg["role"] == "user":
-                with st.chat_message("user", avatar="👤"):
-                    role_tag = msg.get("role_label", "Pengguna")
-                    st.markdown(
-                        f"<div style='font-size: 0.72rem; color: #D97757; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;'>{role_tag}</div>",
-                        unsafe_allow_html=True,
-                    )
-                    st.markdown(msg["content"])
-            else:
-                with st.chat_message("assistant", avatar="🤖"):
-                    msg_model = msg.get("model", "")
-                    model_str = f" &middot; {msg_model}" if msg_model else ""
-                    ret_ms = msg.get("retrieval_ms")
-                    gen_ms = msg.get("gen_ms")
-                    if ret_ms is not None and gen_ms is not None:
-                        latency_str = f"Latensi: {msg.get('latency_ms', 0):.0f} ms (Temu: {ret_ms:.1f} ms &middot; LLM: {gen_ms:.0f} ms)"
-                    else:
-                        latency_str = f"Latensi: {msg.get('latency_ms', 0):.1f} ms"
-
-                    if msg.get("abstained"):
-                        st.markdown(
-                            f"<div class='abstain-box'>{html.escape(msg.get('content', ''))}</div>",
-                            unsafe_allow_html=True,
-                        )
-                        st.caption(
-                            f"{latency_str} &middot; Keyakinan: {msg.get('score', 0):.3f} &middot; Status: Ditolak{model_str}"
-                        )
-                    else:
-                        st.markdown(msg.get("content", ""))
-                        citations = msg.get("citations", [])
-                        if citations:
-                            pills = "".join([
-                                f"<span class='citation-tag'>{c['doc_id']} &middot; {c['section']} (Hal. {c['page']})</span>"
-                                for c in citations
-                            ])
-                            st.markdown(f"<div style='margin-top: 6px;'>{pills}</div>", unsafe_allow_html=True)
-                        st.caption(
-                            f"{latency_str} &middot; Keyakinan: {msg.get('score', 0):.3f}{model_str}"
-                        )
-    else:
+            render_chat_message(msg)
+    elif not active_query:
         st.markdown(
             """
             <div style="padding: 3rem 0; text-align: center; color: #8E8980; font-size: 0.9rem;">
@@ -782,91 +791,121 @@ if active_tab == "Percakapan":
             unsafe_allow_html=True,
         )
 
-    # --- VIEWPORT-LOCKED BOTTOM CHAT INPUT (ONLY ON PERCAKAPAN TAB) ---
-    query_input = st.chat_input("Tanyakan sesuatu tentang dokumen organisasi...")
-    active_query = quick_query or query_input
-
+    # 2. Handle active query: Render User Bubble IMMEDIATELY, then show Spinner and Assistant Bubble
     if active_query:
-        # Append User Message immediately to session state
-        st.session_state.chat_history.append({
+        user_msg = {
             "role": "user",
             "content": active_query,
             "role_label": role_options[selected_role],
-        })
+        }
+        st.session_state.chat_history.append(user_msg)
+        render_chat_message(user_msg)
 
-        user = UserContext(user_id="user_active", roles=[selected_role])
-        t0 = time.perf_counter()
+        with st.chat_message("assistant", avatar="🤖"):
+            with st.spinner("Mencari dokumen dan menyusun jawaban..."):
+                user = UserContext(user_id="user_active", roles=[selected_role])
+                t0 = time.perf_counter()
 
-        # Step 1: Hybrid Retrieval with ACL pre-filtering
-        fused = retriever.search(active_query, user, top_k=settings.top_k_fused)
+                # Step 1: Hybrid Retrieval with ACL pre-filtering
+                fused = retriever.search(active_query, user, top_k=settings.top_k_fused)
 
-        # Step 2: Cross-Encoder Reranking
-        reranked = reranker.rerank(active_query, fused, top_k=settings.top_k_final)
+                # Step 2: Cross-Encoder Reranking
+                reranked = reranker.rerank(active_query, fused, top_k=settings.top_k_final)
 
-        # Step 3: Confidence Gating
-        should_abstain, refusal_reason, conf_score = gate.evaluate(reranked)
+                # Step 3: Confidence Gating
+                should_abstain, refusal_reason, conf_score = gate.evaluate(reranked)
 
-        retrieval_ms = (time.perf_counter() - t0) * 1000
+                retrieval_ms = (time.perf_counter() - t0) * 1000
 
-        if should_abstain:
-            total_ms = (time.perf_counter() - t0) * 1000
-            st.session_state.chat_history.append({
-                "role": "assistant",
-                "content": refusal_reason,
-                "abstained": True,
-                "score": conf_score,
-                "latency_ms": total_ms,
-                "retrieval_ms": retrieval_ms,
-                "gen_ms": 0.0,
-                "model": "Abstain (Gate)",
-            })
-        else:
-            if selected_provider == "gguf":
-                active_gen = get_generator(
-                    provider="gguf",
-                    model=active_local_model_path,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    n_threads=n_threads,
-                    repeat_penalty=repeat_penalty,
-                )
-                chosen_tag = "Qwen 2.5 0.5B (Lokal)" if "qwen" in active_local_model_path.lower() else f"{Path(active_local_model_path).stem} (Lokal)"
+                if should_abstain:
+                    total_ms = (time.perf_counter() - t0) * 1000
+                    asst_msg = {
+                        "role": "assistant",
+                        "content": refusal_reason,
+                        "abstained": True,
+                        "score": conf_score,
+                        "latency_ms": total_ms,
+                        "retrieval_ms": retrieval_ms,
+                        "gen_ms": 0.0,
+                        "model": "Abstain (Gate)",
+                    }
+                else:
+                    if selected_provider == "gguf":
+                        active_gen = get_generator(
+                            provider="gguf",
+                            model=active_local_model_path,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                            n_threads=n_threads,
+                            repeat_penalty=repeat_penalty,
+                        )
+                        chosen_tag = "Qwen 2.5 0.5B (Lokal)" if "qwen" in active_local_model_path.lower() else f"{Path(active_local_model_path).stem} (Lokal)"
+                    else:
+                        active_gen = get_generator(
+                            provider="openrouter",
+                            model=active_cloud_model,
+                            api_key=active_api_key,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                        )
+                        chosen_tag = cloud_models.get(active_cloud_model, active_cloud_model.split("/")[-1])
+
+                    t_gen = time.perf_counter()
+                    answer = active_gen.generate(active_query, reranked, [selected_role])
+                    gen_ms = (time.perf_counter() - t_gen) * 1000
+                    total_ms = (time.perf_counter() - t0) * 1000
+
+                    citations, precision, _ = verifier.extract_and_verify(answer, reranked)
+
+                    cit_dicts = [
+                        {"doc_id": c.doc_id, "section": c.section, "page": c.page}
+                        for c in citations
+                    ]
+
+                    asst_msg = {
+                        "role": "assistant",
+                        "content": answer,
+                        "abstained": False,
+                        "citations": cit_dicts,
+                        "score": conf_score,
+                        "latency_ms": total_ms,
+                        "retrieval_ms": retrieval_ms,
+                        "gen_ms": gen_ms,
+                        "model": chosen_tag,
+                    }
+
+            # In-place render of Assistant response
+            msg_model = asst_msg.get("model", "")
+            model_str = f" &middot; Model: {msg_model}" if msg_model else ""
+            ret_ms = asst_msg.get("retrieval_ms")
+            gen_ms = asst_msg.get("gen_ms")
+            if ret_ms is not None and gen_ms is not None:
+                latency_str = f"Latensi: {asst_msg.get('latency_ms', 0):.0f} ms (Temu: {ret_ms:.1f} ms &middot; LLM: {gen_ms:.0f} ms)"
             else:
-                active_gen = get_generator(
-                    provider="openrouter",
-                    model=active_cloud_model,
-                    api_key=active_api_key,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
+                latency_str = f"Latensi: {asst_msg.get('latency_ms', 0):.1f} ms"
+
+            if asst_msg.get("abstained"):
+                st.markdown(
+                    f"<div class='abstain-box'>{html.escape(asst_msg.get('content', ''))}</div>",
+                    unsafe_allow_html=True,
                 )
-                chosen_tag = cloud_models.get(active_cloud_model, active_cloud_model.split("/")[-1])
+                st.caption(
+                    f"{latency_str} &middot; Keyakinan: {asst_msg.get('score', 0):.3f} &middot; Status: Ditolak{model_str}"
+                )
+            else:
+                st.markdown(asst_msg.get("content", ""))
+                citations = asst_msg.get("citations", [])
+                if citations:
+                    pills = "".join([
+                        f"<span class='citation-tag'>{c['doc_id']} &middot; {c['section']} (Hal. {c['page']})</span>"
+                        for c in citations
+                    ])
+                    st.markdown(f"<div style='margin-top: 6px;'>{pills}</div>", unsafe_allow_html=True)
+                st.caption(
+                    f"{latency_str} &middot; Keyakinan: {asst_msg.get('score', 0):.3f}{model_str}"
+                )
 
-            t_gen = time.perf_counter()
-            with st.spinner("Menyusun jawaban resmi..."):
-                answer = active_gen.generate(active_query, reranked, [selected_role])
-            gen_ms = (time.perf_counter() - t_gen) * 1000
-            total_ms = (time.perf_counter() - t0) * 1000
-
-            citations, precision, _ = verifier.extract_and_verify(answer, reranked)
-
-            cit_dicts = [
-                {"doc_id": c.doc_id, "section": c.section, "page": c.page}
-                for c in citations
-            ]
-
-            st.session_state.chat_history.append({
-                "role": "assistant",
-                "content": answer,
-                "abstained": False,
-                "citations": cit_dicts,
-                "score": conf_score,
-                "latency_ms": total_ms,
-                "retrieval_ms": retrieval_ms,
-                "gen_ms": gen_ms,
-                "model": chosen_tag,
-            })
-
-        st.rerun()
+        st.session_state.chat_history.append(asst_msg)
 
 elif active_tab == "Benchmark":
     st.markdown('<h2 style="font-size: 1.6rem; margin-bottom: 2px;">Evaluasi & Benchmark</h2>', unsafe_allow_html=True)
