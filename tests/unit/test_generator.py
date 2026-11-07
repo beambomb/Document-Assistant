@@ -40,4 +40,14 @@ def test_openrouter_generator_fallback_without_key():
     cand = make_candidate("PUB-GEN-001", "Profil Perusahaan", "PT Dua Empat Tujuh Nusantara.")
     answer = gen.generate("Apa nama perusahaan?", [cand], ["guest"])
 
-    assert "Profil Perusahaan" in answer
+    assert "PT Dua Empat Tujuh Nusantara" in answer
+    assert "[Doc: PUB-GEN-001, Hal: 1]" in answer
+
+
+def test_local_gguf_generator_fallback_when_model_file_missing():
+    from src.generation.generator import LocalGGUFGenerator
+    gen = LocalGGUFGenerator(model_path="models/non_existent.gguf")
+    cand = make_candidate("KEB-HR-002", "Kebijakan Cuti", "Hak cuti tahunan 12 hari kerja.")
+    answer = gen.generate("Berapa hari cuti?", [cand], ["employee"])
+
+    assert "GGUF Engine Status" in answer or "Kebijakan Cuti" in answer

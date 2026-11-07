@@ -2,6 +2,7 @@
 
 import re
 import time
+from pathlib import Path
 from typing import List, Optional
 import httpx
 from src.core.models import RetrievalCandidate, QueryResult, Citation
@@ -126,9 +127,117 @@ class OpenRouterGenerator(BaseGenerator):
             return MockGenerator().generate(query, retrieved_chunks, user_roles)
 
 
+class LocalGGUFGenerator(BaseGenerator):
+    """
+    Offline local LLM generator using GGUF quantized models (llama-cpp-python or ctransformers).
+    Operates 100% on CPU without requiring cloud API keys or external server processes.
+    """
+
+    def __init__(
+        self,
+        model_path: Optional[str] = None,
+        n_ctx: Optional[int] = None,
+        n_threads: Optional[int] = None,
+    ):
+        self.model_path = model_path or settings.local_model_path
+        self.n_ctx = n_ctx or settings.local_model_ctx
+        self.n_threads = n_threads or settings.local_model_threads
+        self._llm = None
+
+    def _load_model(self):
+        if self._llm is None:
+            # Try llama_cpp first, then ctransformers
+            try:
+                from llama_cpp import Llama
+                self._llm = Llama(
+                    model_path=str(self.model_path),
+                    n_ctx=self.n_ctx,
+                    n_threads=self.n_threads,
+                    verbose=False,
+                )
+            except ImportError:
+                try:
+                    from ctransformers import AutoModelForCausalLM
+                    self._llm = AutoModelForCausalLM.from_pretrained(
+                        str(self.model_path),
+                        model_type="llama",
+                        threads=self.n_threads,
+                    )
+                except ImportError:
+                    raise RuntimeError(
+                        "Untuk menjalankan model GGUF lokal di Python, silakan install salah satu engine:\n"
+                        "  pip install llama-cpp-python\n"
+                        "atau\n"
+                        "  pip install ctransformers"
+                    )
+        return self._llm
+
+    def format_context(self, chunks: List[RetrievalCandidate]) -> str:
+        context_blocks = []
+        for i, c in enumerate(chunks, start=1):
+            chunk = c.chunk
+            block = (
+                f"--- DOKUMEN #{i} ---\n"
+                f"ID Dokumen: {chunk.doc_id}\n"
+                f"Judul: {chunk.title}\n"
+                f"Bagian: {chunk.section} (Halaman {chunk.page})\n"
+                f"Isi Dokumen:\n{chunk.text}\n"
+            )
+            context_blocks.append(block)
+        return "\n".join(context_blocks)
+
+    def generate(
+        self,
+        query: str,
+        retrieved_chunks: List[RetrievalCandidate],
+        user_roles: List[str],
+    ) -> str:
+        if not retrieved_chunks:
+            return "Maaf, informasi ini tidak ditemukan dalam dokumen resmi yang tersedia untuk akun Anda."
+
+        path_obj = Path(self.model_path)
+        if not path_obj.exists():
+            return (
+                f"[GGUF Engine Status]: File model lokal belum ditemukan di '{self.model_path}'. "
+                f"Silakan unduh model GGUF (contoh: Llama-3.2-1B-Instruct-Q4_K_M.gguf) dan letakkan di folder 'models/'. "
+                f"Gunakan fallback dokumen: {MockGenerator().generate(query, retrieved_chunks, user_roles)}"
+            )
+
+        try:
+            llm = self._load_model()
+            context_str = self.format_context(retrieved_chunks)
+
+            if hasattr(llm, "create_chat_completion"):
+                # llama-cpp chat interface
+                resp = llm.create_chat_completion(
+                    messages=[
+                        {"role": "system", "content": ENTERPRISE_SYSTEM_PROMPT},
+                        {"role": "user", "content": f"KONTEKS DOKUMEN:\n{context_str}\n\nPERTANYAAN PENGGUNA:\n{query}"},
+                    ],
+                    max_tokens=settings.max_tokens,
+                    temperature=settings.temperature,
+                )
+                return resp["choices"][0]["message"]["content"].strip()
+            else:
+                # ctransformers text interface
+                prompt = (
+                    f"### SYSTEM:\n{ENTERPRISE_SYSTEM_PROMPT}\n\n"
+                    f"### USER:\nKONTEKS DOKUMEN:\n{context_str}\n\nPERTANYAAN PENGGUNA:\n{query}\n\n"
+                    f"### ASSISTANT:\n"
+                )
+                return llm(prompt, max_new_tokens=settings.max_tokens).strip()
+        except Exception as e:
+            return (
+                f"Error eksekusi GGUF: {e}. "
+                f"Gunakan fallback: {MockGenerator().generate(query, retrieved_chunks, user_roles)}"
+            )
+
+
 def get_generator() -> BaseGenerator:
     """Factory creating configured generator instance."""
     provider = settings.llm_provider.lower().strip()
+    if provider in ["gguf", "local"]:
+        return LocalGGUFGenerator()
     if provider == "openrouter":
         return OpenRouterGenerator()
     return MockGenerator()

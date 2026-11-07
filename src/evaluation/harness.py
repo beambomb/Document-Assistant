@@ -110,7 +110,8 @@ class EvaluationHarness:
 
             latencies.append((time.perf_counter() - t0) * 1000)
 
-            retrieved_doc_ids = [c.chunk.doc_id for c in candidates]
+            # Deduplicate per document ID preserving rank order for clean document-level IR metrics
+            retrieved_doc_ids = list(dict.fromkeys(c.chunk.doc_id for c in candidates))
 
             recalls_1.append(recall_at_k(retrieved_doc_ids, expected_doc_ids, k=1))
             recalls_3.append(recall_at_k(retrieved_doc_ids, expected_doc_ids, k=3))
@@ -133,7 +134,8 @@ class EvaluationHarness:
             else:
                 candidates = retriever.search(query, user, top_k=5)
 
-            retrieved_doc_ids = [c.chunk.doc_id for c in candidates]
+            # Deduplicate per document ID preserving rank order for clean document-level IR metrics
+            retrieved_doc_ids = list(dict.fromkeys(c.chunk.doc_id for c in candidates))
             if check_acl_leakage(retrieved_doc_ids, prohibited_doc_ids):
                 leaks += 1
 

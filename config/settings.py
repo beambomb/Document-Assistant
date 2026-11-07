@@ -66,6 +66,11 @@ class Settings(BaseSettings):
     openai_base_url: str = "https://api.openai.com/v1"
     openai_model: str = "gpt-4o-mini"
 
+    # 4. Local Offline GGUF Model (llama-cpp-python / ctransformers)
+    local_model_path: str = Field(default="models/llama-3.2-1b-instruct.Q4_K_M.gguf", validation_alias="LOCAL_MODEL_PATH")
+    local_model_threads: int = 4
+    local_model_ctx: int = 2048
+
     # Generation Parameters
     temperature: float = 0.0
     max_tokens: int = 1024
