@@ -351,6 +351,30 @@ st.markdown(
         color: var(--text) !important;
     }
 
+    /* Clean Selectboxes, Text Inputs, and Sliders in Sidebar */
+    section[data-testid="stSidebar"] div[data-testid="stSelectbox"] label,
+    section[data-testid="stSidebar"] div[data-testid="stTextInput"] label,
+    section[data-testid="stSidebar"] div[data-testid="stSlider"] label {
+        font-size: 0.78rem !important;
+        color: var(--text-muted) !important;
+        font-weight: 500 !important;
+        margin-bottom: 2px !important;
+    }
+    section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
+        background-color: var(--surface) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 8px !important;
+        color: var(--text) !important;
+        font-size: 0.84rem !important;
+    }
+    section[data-testid="stSidebar"] input {
+        background-color: var(--surface) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 8px !important;
+        color: var(--text) !important;
+        font-size: 0.84rem !important;
+    }
+
     /* Expander */
     div[data-testid="stExpander"] {
         background: var(--surface) !important;
@@ -436,39 +460,138 @@ with st.sidebar:
 
     st.divider()
 
-    st.markdown('<div style="font-size: 0.78rem; font-weight: 600; color: #FAF7F2; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Mesin AI (LLM)</div>', unsafe_allow_html=True)
-    engine_options = {
-        "gguf": "Model Lokal CPU (Qwen 0.5B)",
-        "openrouter": "Cloud AI (Nemotron 30B / Free)",
+    st.markdown('<div style="font-size: 0.78rem; font-weight: 600; color: #FAF7F2; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Pilihan Model AI</div>', unsafe_allow_html=True)
+
+    provider_options = {
+        "openrouter": "Cloud AI (OpenRouter)",
+        "gguf": "Lokal CPU (Offline GGUF)",
     }
     selected_provider = st.radio(
-        "Penyedia LLM",
-        options=list(engine_options.keys()),
-        format_func=lambda x: engine_options[x],
-        index=0 if settings.llm_provider.lower() in ["gguf", "local"] else 1,
+        "Penyedia AI",
+        options=list(provider_options.keys()),
+        format_func=lambda x: provider_options[x],
+        index=0 if settings.llm_provider.lower() == "openrouter" else 1,
         label_visibility="collapsed",
+        key="selected_provider",
     )
 
-    st.divider()
+    if selected_provider == "openrouter":
+        cloud_models = {
+            "meta-llama/llama-3.3-70b-instruct": "Meta Llama 3.3 70B (Rekomendasi)",
+            "deepseek/deepseek-chat": "DeepSeek V3 (Sangat Cerdas)",
+            "google/gemini-2.0-flash-exp:free": "Google Gemini 2.0 Flash (Gratis)",
+            "qwen/qwen-2.5-72b-instruct": "Qwen 2.5 72B (Multibahasa)",
+            "openai/gpt-4o-mini": "OpenAI GPT-4o Mini (Cepat)",
+            "anthropic/claude-3.5-sonnet": "Claude 3.5 Sonnet (Penalaran)",
+            "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free": "Nemotron 30B (Penalaran)",
+            "custom": "Model Kustom (Input Slug...)",
+        }
+        selected_cloud_key = st.selectbox(
+            "Model Cloud",
+            options=list(cloud_models.keys()),
+            format_func=lambda k: cloud_models[k],
+            index=0,
+            key="selected_cloud_key",
+        )
+        if selected_cloud_key == "custom":
+            active_cloud_model = st.text_input(
+                "Slug Model OpenRouter",
+                value="mistralai/mistral-small-3",
+                placeholder="contoh: meta-llama/llama-3.1-8b-instruct",
+                key="custom_cloud_slug",
+            )
+        else:
+            active_cloud_model = selected_cloud_key
 
-    # Quiet System Metadata
-    if selected_provider == "gguf":
-        model_display = Path(settings.local_model_path).name
-        engine_display = "Qwen 2.5 (Lokal CPU)"
-    elif selected_provider == "openrouter":
-        model_display = settings.openrouter_model
+        with st.expander("API Key Kustom (BYOK)", expanded=False):
+            user_api_key = st.text_input(
+                "OpenRouter API Key",
+                type="password",
+                placeholder="sk-or-v1-...",
+                help="Biarkan kosong untuk menggunakan kunci default sistem",
+                key="user_api_key",
+            )
+        active_api_key = user_api_key.strip() if user_api_key.strip() else settings.openrouter_api_key
+        active_model_name = active_cloud_model
+        model_display = cloud_models.get(active_cloud_model, active_cloud_model.split("/")[-1])
         engine_display = "OpenRouter (Cloud)"
-    else:
-        model_display = "Deterministic"
-        engine_display = "Mock"
+
+    else:  # gguf local
+        local_model_files = sorted(list(Path("models").glob("*.gguf")))
+        if local_model_files:
+            def format_gguf_label(p: Path) -> str:
+                size_mb = p.stat().st_size / (1024 * 1024)
+                name = p.name
+                if "qwen2.5-0.5b" in name.lower():
+                    return f"Qwen 2.5 0.5B ({size_mb:.0f} MB)"
+                return f"{name} ({size_mb:.0f} MB)"
+
+            selected_local_file = st.selectbox(
+                "File Model GGUF",
+                options=local_model_files,
+                format_func=format_gguf_label,
+                index=0,
+                key="selected_local_file",
+            )
+            active_local_model_path = str(selected_local_file)
+            size_mb = selected_local_file.stat().st_size / (1024 * 1024)
+            st.caption(f"Status: Siap di CPU ({size_mb:.0f} MB)")
+        else:
+            st.warning("Tidak ada file .gguf di folder models/.")
+            active_local_model_path = settings.local_model_path
+
+        active_model_name = active_local_model_path
+        model_display = Path(active_local_model_path).stem
+        engine_display = "GGUF (Lokal CPU)"
+
+    # Advanced Generation Settings Expander
+    with st.expander("Pengaturan Inferensi", expanded=False):
+        temperature = st.slider(
+            "Temperature",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.2 if selected_provider == "openrouter" else 0.3,
+            step=0.05,
+            help="0.0 = deterministik dan patuh konteks; 1.0 = lebih variatif",
+            key="slider_temperature",
+        )
+        max_tokens = st.slider(
+            "Maksimal Token Jawaban",
+            min_value=100,
+            max_value=800,
+            value=350,
+            step=50,
+            help="Batas panjang jawaban AI",
+            key="slider_max_tokens",
+        )
+        if selected_provider == "gguf":
+            repeat_penalty = st.slider(
+                "Anti Pengulangan (Penalty)",
+                min_value=1.0,
+                max_value=1.5,
+                value=1.22,
+                step=0.02,
+                help="Mencegah model kecil mengulang-ulang kalimat",
+                key="slider_repeat_penalty",
+            )
+            n_threads = st.selectbox(
+                "CPU Threads",
+                options=[2, 4, 6, 8],
+                index=1,
+                help="Jumlah core CPU yang digunakan",
+                key="select_cpu_threads",
+            )
+        else:
+            repeat_penalty = 1.0
+            n_threads = 4
 
     st.markdown(
         f"""
-        <div style="font-size: 0.78rem; color: #8E8980; line-height: 1.7;">
+        <div style="font-size: 0.78rem; color: #8E8980; line-height: 1.7; border-top: 1px solid var(--border-subtle); padding-top: 10px; margin-top: 10px;">
             <div><strong>Engine:</strong> {engine_display}</div>
             <div><strong>Model:</strong> {model_display}</div>
             <div><strong>Indeks:</strong> {len(docs)} Dokumen &middot; {len(chunks)} Chunks</div>
-            <div><strong>Gate:</strong> {settings.confidence_threshold}</div>
+            <div><strong>Gate:</strong> {settings.confidence_threshold} &middot; <strong>Temp:</strong> {temperature}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -594,13 +717,15 @@ if active_tab == "Percakapan":
                     st.markdown(msg["content"])
             else:
                 with st.chat_message("assistant", avatar="🤖"):
+                    msg_model = msg.get("model", "")
+                    model_str = f" &middot; {msg_model}" if msg_model else ""
                     if msg.get("abstained"):
                         st.markdown(
                             f"<div class='abstain-box'>{html.escape(msg.get('content', ''))}</div>",
                             unsafe_allow_html=True,
                         )
                         st.caption(
-                            f"Latensi: {msg.get('latency_ms', 0):.1f} ms &middot; Keyakinan: {msg.get('score', 0):.3f} &middot; Status: Ditolak"
+                            f"Latensi: {msg.get('latency_ms', 0):.1f} ms &middot; Keyakinan: {msg.get('score', 0):.3f} &middot; Status: Ditolak{model_str}"
                         )
                     else:
                         st.markdown(msg.get("content", ""))
@@ -612,7 +737,7 @@ if active_tab == "Percakapan":
                             ])
                             st.markdown(f"<div style='margin-top: 6px;'>{pills}</div>", unsafe_allow_html=True)
                         st.caption(
-                            f"Latensi: {msg.get('latency_ms', 0):.1f} ms &middot; Keyakinan: {msg.get('score', 0):.3f}"
+                            f"Latensi: {msg.get('latency_ms', 0):.1f} ms &middot; Keyakinan: {msg.get('score', 0):.3f}{model_str}"
                         )
     else:
         st.markdown(
@@ -657,9 +782,29 @@ if active_tab == "Percakapan":
                 "abstained": True,
                 "score": conf_score,
                 "latency_ms": latency_ms,
+                "model": "Abstain (Gate)",
             })
         else:
-            active_gen = get_generator(selected_provider)
+            if selected_provider == "gguf":
+                active_gen = get_generator(
+                    provider="gguf",
+                    model=active_local_model_path,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    n_threads=n_threads,
+                    repeat_penalty=repeat_penalty,
+                )
+                chosen_tag = "Qwen 2.5 0.5B (Lokal)" if "qwen" in active_local_model_path.lower() else f"{Path(active_local_model_path).stem} (Lokal)"
+            else:
+                active_gen = get_generator(
+                    provider="openrouter",
+                    model=active_cloud_model,
+                    api_key=active_api_key,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                chosen_tag = cloud_models.get(active_cloud_model, active_cloud_model.split("/")[-1])
+
             answer = active_gen.generate(active_query, reranked, [selected_role])
             citations, precision, _ = verifier.extract_and_verify(answer, reranked)
 
@@ -675,6 +820,7 @@ if active_tab == "Percakapan":
                 "citations": cit_dicts,
                 "score": conf_score,
                 "latency_ms": latency_ms,
+                "model": chosen_tag,
             })
 
         st.rerun()

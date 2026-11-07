@@ -59,10 +59,14 @@ class OpenRouterGenerator(BaseGenerator):
         api_key: Optional[str] = None,
         model: Optional[str] = None,
         base_url: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
     ):
         self.api_key = api_key or settings.openrouter_api_key
         self.model = model or settings.openrouter_model
         self.base_url = (base_url or settings.openrouter_base_url).rstrip("/")
+        self.temperature = temperature if temperature is not None else settings.temperature
+        self.max_tokens = max_tokens if max_tokens is not None else settings.max_tokens
 
     def format_context(self, chunks: List[RetrievalCandidate]) -> str:
         context_blocks = []
@@ -91,8 +95,8 @@ class OpenRouterGenerator(BaseGenerator):
                 {"role": "system", "content": ENTERPRISE_SYSTEM_PROMPT},
                 {"role": "user", "content": user_content},
             ],
-            "temperature": settings.temperature,
-            "max_tokens": settings.max_tokens,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
         }
 
         headers = {
@@ -103,7 +107,7 @@ class OpenRouterGenerator(BaseGenerator):
         }
 
         try:
-            with httpx.Client(timeout=30.0) as client:
+            with httpx.Client(timeout=45.0) as client:
                 resp = client.post(
                     f"{self.base_url}/chat/completions",
                     json=payload,
@@ -111,22 +115,29 @@ class OpenRouterGenerator(BaseGenerator):
                 )
                 if resp.status_code == 200:
                     data = resp.json()
-                    return data["choices"][0]["message"]["content"].strip()
+                    choices = data.get("choices", [])
+                    if choices:
+                        msg = choices[0].get("message", {})
+                        raw = msg.get("content") or msg.get("reasoning") or ""
+                        # Clean out reasoning tags like <think>...</think> if present
+                        cleaned = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+                        return cleaned if cleaned else raw.strip()
+                    return "Tidak ada respon dari penyedia AI."
                 else:
                     return (
-                        f"Penyedia AI mengembalikan error ({resp.status_code}). "
+                        f"Penyedia AI ({self.model}) mengembalikan error ({resp.status_code}): {resp.text[:120]}. "
                         f"Gunakan fallback dokumen: {MockGenerator().generate(query, retrieved_chunks, user_roles)}"
                     )
         except Exception as e:
             return MockGenerator().generate(query, retrieved_chunks, user_roles)
 
 
-_SHARED_GGUF_INSTANCE = None
+_SHARED_GGUF_INSTANCES = {}
 
 
 class LocalGGUFGenerator(BaseGenerator):
     """
-    Offline local LLM generator using GGUF quantized models (llama-cpp-python or ctransformers).
+    Offline local LLM generator using GGUF quantized models (llama-cpp-python).
     Operates 100% on CPU without requiring cloud API keys or external server processes.
     """
 
@@ -135,17 +146,24 @@ class LocalGGUFGenerator(BaseGenerator):
         model_path: Optional[str] = None,
         n_ctx: Optional[int] = None,
         n_threads: Optional[int] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        repeat_penalty: Optional[float] = None,
     ):
         self.model_path = model_path or settings.local_model_path
         self.n_ctx = n_ctx or settings.local_model_ctx
         self.n_threads = n_threads or settings.local_model_threads
+        self.temperature = temperature if temperature is not None else 0.3
+        self.max_tokens = max_tokens if max_tokens is not None else min(settings.max_tokens, 350)
+        self.repeat_penalty = repeat_penalty if repeat_penalty is not None else 1.22
 
     def _load_model(self):
-        global _SHARED_GGUF_INSTANCE
-        if _SHARED_GGUF_INSTANCE is None:
+        global _SHARED_GGUF_INSTANCES
+        cache_key = (str(self.model_path), self.n_ctx, self.n_threads)
+        if cache_key not in _SHARED_GGUF_INSTANCES:
             try:
                 from llama_cpp import Llama
-                _SHARED_GGUF_INSTANCE = Llama(
+                _SHARED_GGUF_INSTANCES[cache_key] = Llama(
                     model_path=str(self.model_path),
                     n_ctx=self.n_ctx,
                     n_threads=self.n_threads,
@@ -156,7 +174,7 @@ class LocalGGUFGenerator(BaseGenerator):
                     "Engine GGUF lokal membutuhkan paket 'llama-cpp-python'.\n"
                     "Silakan install dengan perintah: pip install llama-cpp-python"
                 )
-        return _SHARED_GGUF_INSTANCE
+        return _SHARED_GGUF_INSTANCES[cache_key]
 
     def format_context(self, chunks: List[RetrievalCandidate]) -> str:
         context_blocks = []
@@ -179,14 +197,13 @@ class LocalGGUFGenerator(BaseGenerator):
         if not path_obj.exists():
             return (
                 f"[GGUF Engine Status]: File model lokal belum ditemukan di '{self.model_path}'. "
-                f"Silakan unduh model GGUF (contoh: Llama-3.2-1B-Instruct-Q4_K_M.gguf) dan letakkan di folder 'models/'. "
+                f"Silakan unduh model GGUF dan letakkan di folder 'models/'. "
                 f"Gunakan fallback dokumen: {MockGenerator().generate(query, retrieved_chunks, user_roles)}"
             )
 
         try:
             llm = self._load_model()
             context_str = self.format_context(retrieved_chunks)
-            gen_tokens = min(settings.max_tokens, 350)
             stop_tokens = [
                 "<|im_end|>", "<|im_start|>", "<|endoftext|>", "###",
                 "\nPERTANYAAN:", "\nDOKUMEN:"
@@ -197,10 +214,10 @@ class LocalGGUFGenerator(BaseGenerator):
                     {"role": "system", "content": ENTERPRISE_SYSTEM_PROMPT},
                     {"role": "user", "content": f"DOKUMEN RESMI:\n{context_str}\n\nPERTANYAAN: {query}\n\nJAWABAN LANGSUNG:"},
                 ],
-                max_tokens=gen_tokens,
-                temperature=0.3,
+                max_tokens=self.max_tokens,
+                temperature=self.temperature,
                 top_p=0.9,
-                repeat_penalty=1.22,
+                repeat_penalty=self.repeat_penalty,
                 frequency_penalty=0.35,
                 presence_penalty=0.2,
                 stop=stop_tokens,
@@ -217,11 +234,32 @@ class LocalGGUFGenerator(BaseGenerator):
             )
 
 
-def get_generator(provider: Optional[str] = None) -> BaseGenerator:
+def get_generator(
+    provider: Optional[str] = None,
+    model: Optional[str] = None,
+    api_key: Optional[str] = None,
+    temperature: Optional[float] = None,
+    max_tokens: Optional[int] = None,
+    n_threads: Optional[int] = None,
+    n_ctx: Optional[int] = None,
+    repeat_penalty: Optional[float] = None,
+) -> BaseGenerator:
     """Factory creating configured generator instance."""
     active = (provider or settings.llm_provider).lower().strip()
     if active in ["gguf", "local"]:
-        return LocalGGUFGenerator()
+        return LocalGGUFGenerator(
+            model_path=model,
+            n_ctx=n_ctx,
+            n_threads=n_threads,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            repeat_penalty=repeat_penalty,
+        )
     if active == "openrouter":
-        return OpenRouterGenerator()
+        return OpenRouterGenerator(
+            api_key=api_key,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
     return MockGenerator()
